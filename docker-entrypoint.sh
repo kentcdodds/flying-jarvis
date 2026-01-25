@@ -121,5 +121,14 @@ fi
 
 maybe_enable_insecure_control_ui
 
+# Log the clawdbot config file on startup
+if [ -f "$CONFIG_FILE" ]; then
+  echo "=== Clawdbot Config File ($CONFIG_FILE) ==="
+  cat "$CONFIG_FILE"
+  echo "=== End of Clawdbot Config File ==="
+else
+  echo "Warning: Config file not found at $CONFIG_FILE"
+fi
+
 # Execute the CMD from Dockerfile
 exec "$@"
