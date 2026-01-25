@@ -11,7 +11,7 @@ primary_region = "dfw"
   NODE_OPTIONS = "--max-old-space-size=1536"
 
 [processes]
-  app = "node dist/index.js gateway --port 3000 --bind 127.0.0.1"
+  app = "node dist/index.js gateway --port 3000 --bind auto"
 
 [[vm]]
   size = "shared-cpu-2x"
