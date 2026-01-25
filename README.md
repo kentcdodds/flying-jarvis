@@ -100,5 +100,10 @@ The application automatically creates a default config at `/data/clawdbot.json` 
 - **Cloudflare Tunnel not reachable:** Ensure `CLOUDFLARE_TUNNEL_TOKEN` is set and the tunnel
   points to `http://127.0.0.1:3000`
 - **Control UI token rejected over tunnel:** Set `CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH=true` and redeploy to allow token-only auth (skips device pairing).
+- **Discord bot doesn't respond:**
+  - Ensure `DISCORD_BOT_TOKEN` is set in secrets and the app was redeployed.
+  - Ensure `DISCORD_GUILD_ID` is set (or replace `YOUR_GUILD_ID` in `/data/clawdbot.json`).
+  - The default config uses `groupPolicy: "allowlist"` and a per-guild channel allowlist; add the target channel ID under `channels.discord.guilds.<guild-id>.channels` or switch the policy to open.
+  - Restart the app after config changes.
 
 For more details, see the [official Clawdbot Fly.io documentation](https://docs.clawd.bot/platforms/fly.md).
