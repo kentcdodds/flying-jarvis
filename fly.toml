@@ -1,5 +1,5 @@
 app = "flying-jarvis"
-primary_region = "iad"
+primary_region = "dfw"
 
 [build]
   dockerfile = "Dockerfile"
@@ -26,7 +26,7 @@ primary_region = "iad"
   memory = "2048mb"
 
 # Volume must be created before first deployment:
-# flyctl volumes create clawdbot_data --region iad --size 1
+# flyctl volumes create clawdbot_data --region dfw --size 1
 [mounts]
   source = "clawdbot_data"
   destination = "/data"

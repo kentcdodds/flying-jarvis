@@ -21,7 +21,7 @@ This repository contains the configuration to deploy Clawdbot to Fly.io with aut
 
 2. **Create a persistent volume:**
    ```bash
-   flyctl volumes create clawdbot_data --region iad --size 1
+   flyctl volumes create clawdbot_data --region dfw --size 1
    ```
 
 3. **Set up GitHub Actions secrets:**
