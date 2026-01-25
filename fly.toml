@@ -25,6 +25,8 @@ primary_region = "iad"
   size = "shared-cpu-2x"
   memory = "2048mb"
 
+# Volume must be created before first deployment:
+# flyctl volumes create clawdbot_data --region iad --size 1
 [mounts]
   source = "clawdbot_data"
   destination = "/data"
