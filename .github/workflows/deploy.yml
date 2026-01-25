@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      reset_config:
+        description: 'Reset config to default (deletes existing config)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   deploy:
@@ -14,9 +21,9 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: superfly/flyctl-actions/setup-flyctl@v1
-      
+
       - name: Set Fly.io secrets from GitHub secrets
         run: |
           SECRETS=(
@@ -28,6 +35,8 @@ jobs:
           [ -n "${DISCORD_BOT_TOKEN}" ] && SECRETS+=("DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}")
           [ -n "${DISCORD_GUILD_ID}" ] && SECRETS+=("DISCORD_GUILD_ID=${DISCORD_GUILD_ID}")
           [ -n "${CLOUDFLARE_TUNNEL_TOKEN}" ] && SECRETS+=("CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}")
+          [ -n "${CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH}" ] && SECRETS+=("CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH=${CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH}")
+          [ "${{ inputs.reset_config }}" = "true" ] && SECRETS+=("RESET_CONFIG=true")
           flyctl secrets set "${SECRETS[@]}" --app "${FLY_APP_NAME}" --stage
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -39,7 +48,8 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
-      
+          CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH: ${{ secrets.CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH }}
+
       - run: flyctl deploy --remote-only --app "${FLY_APP_NAME}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

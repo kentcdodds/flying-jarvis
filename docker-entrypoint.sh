@@ -103,20 +103,34 @@ CONFIG_FILE="$CONFIG_DIR/clawdbot.json"
 # Create config directory if it doesn't exist
 mkdir -p "$CONFIG_DIR"
 
+# Handle config reset if requested
+if is_truthy "${RESET_CONFIG:-}"; then
+  if [ -f "$CONFIG_FILE" ]; then
+    echo "RESET_CONFIG is set; removing existing config file..."
+    rm -f "$CONFIG_FILE"
+    echo "Existing config removed"
+  else
+    echo "RESET_CONFIG is set, but no config file exists at $CONFIG_FILE"
+  fi
+fi
+
 # Copy default config if config file doesn't exist
 if [ ! -f "$CONFIG_FILE" ]; then
   echo "Config file not found at $CONFIG_FILE"
   echo "Creating default config from template..."
   cp /app/default-config.json "$CONFIG_FILE"
-  
-  # Replace placeholder values with environment variables if set
-  if [ -n "${DISCORD_GUILD_ID}" ]; then
-    echo "Setting Discord Guild ID from environment variable..."
-    sed -i "s/YOUR_GUILD_ID/${DISCORD_GUILD_ID}/g" "$CONFIG_FILE"
-  fi
-  
   echo "Default config created at $CONFIG_FILE"
   echo "You can customize this config via the UI or by editing the file directly"
+fi
+
+# Replace placeholder values with environment variables if set
+# This runs on every startup to ensure placeholders get replaced
+if [ -n "${DISCORD_GUILD_ID}" ]; then
+  if grep -q "YOUR_GUILD_ID" "$CONFIG_FILE"; then
+    echo "Replacing YOUR_GUILD_ID placeholder with Discord Guild ID from environment variable..."
+    sed -i "s/YOUR_GUILD_ID/${DISCORD_GUILD_ID}/g" "$CONFIG_FILE"
+    echo "Discord Guild ID updated in config"
+  fi
 fi
 
 maybe_enable_insecure_control_ui

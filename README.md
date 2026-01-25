@@ -48,6 +48,12 @@ This repository contains the configuration to deploy Clawdbot to Fly.io with aut
 4. **Deploy:**
    - Push to the `main` branch to trigger automatic deployment via GitHub Actions
    - The workflow will automatically sync all secrets to Fly.io and deploy
+   
+   **Manual deployment with config reset:**
+   - Go to Actions tab > Deploy to Fly.io workflow
+   - Click "Run workflow"
+   - Check "Reset config to default" to delete the existing config and create a fresh one
+   - This is useful when you want to start over with the default configuration
 
 ### Post-Deployment
 
@@ -72,7 +78,7 @@ After deployment, you can:
    
    You can edit the config file at `/data/clawdbot.json` if needed. The default config includes:
    - Discord integration enabled (requires `DISCORD_BOT_TOKEN` environment variable)
-   - Placeholder guild ID that needs to be replaced with your actual Discord server ID
+   - Placeholder guild ID (`YOUR_GUILD_ID`) that gets automatically replaced with your actual Discord server ID from the `DISCORD_GUILD_ID` environment variable on startup
    - Claude Opus 4.5 as primary model with Sonnet 4.5 and GPT-4o as fallbacks
 
 ### Customizing the Configuration
@@ -88,7 +94,7 @@ The application automatically creates a default config at `/data/clawdbot.json` 
 2. **Via SSH** (advanced):
    - SSH into the machine: `flyctl ssh console`
    - Edit the config: `vi /data/clawdbot.json`
-   - Replace `YOUR_GUILD_ID` with your Discord server ID
+   - Note: If you set the `DISCORD_GUILD_ID` environment variable, the `YOUR_GUILD_ID` placeholder will be automatically replaced on each startup
    - Add or modify channels, agents, or other settings
    - Exit and the changes will take effect (may require restart)
 
@@ -102,7 +108,7 @@ The application automatically creates a default config at `/data/clawdbot.json` 
 - **Control UI token rejected over tunnel:** Set `CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH=true` and redeploy to allow token-only auth (skips device pairing).
 - **Discord bot doesn't respond:**
   - Ensure `DISCORD_BOT_TOKEN` is set in secrets and the app was redeployed.
-  - Ensure `DISCORD_GUILD_ID` is set (or replace `YOUR_GUILD_ID` in `/data/clawdbot.json`).
+  - Ensure `DISCORD_GUILD_ID` is set in secrets. The placeholder `YOUR_GUILD_ID` in the config will be automatically replaced on startup.
   - The default config uses `groupPolicy: "allowlist"` and a per-guild channel allowlist; add the target channel ID under `channels.discord.guilds.<guild-id>.channels` or switch the policy to open.
   - Restart the app after config changes.
 
