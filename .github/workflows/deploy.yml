@@ -10,6 +10,8 @@ jobs:
     name: Deploy app
     runs-on: ubuntu-latest
     concurrency: deploy-group # Ensure only one deployment at a time
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       
