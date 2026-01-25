@@ -24,30 +24,24 @@ This repository contains the configuration to deploy Clawdbot to Fly.io with aut
    flyctl volumes create clawdbot_data --region iad --size 1
    ```
 
-3. **Set up secrets:**
-   ```bash
-   # Required: Gateway token (for security)
-   flyctl secrets set CLAWDBOT_GATEWAY_TOKEN=$(openssl rand -hex 32)
-   
-   # Required: Model provider API key
-   flyctl secrets set ANTHROPIC_API_KEY=sk-ant-...
-   
-   # Optional: Other providers
-   flyctl secrets set OPENAI_API_KEY=sk-...
-   flyctl secrets set GOOGLE_API_KEY=...
-   
-   # Optional: Channel tokens
-   flyctl secrets set DISCORD_BOT_TOKEN=MTQ...
-   ```
-
-4. **Set up GitHub Actions:**
+3. **Set up GitHub Actions secrets:**
    - Go to your repository Settings > Secrets and variables > Actions
-   - Add a new repository secret: `FLY_API_TOKEN`
-   - Get your token with: `flyctl auth token`
+   - Add the following repository secrets:
+   
+   **Required secrets:**
+   - `FLY_API_TOKEN` - Get your token with: `flyctl auth token`
+   - `CLAWDBOT_GATEWAY_TOKEN` - Generate with: `openssl rand -hex 32`
+   - `ANTHROPIC_API_KEY` - Your Anthropic API key (e.g., `sk-ant-...`)
+   
+   **Optional secrets (add as needed):**
+   - `OPENAI_API_KEY` - Your OpenAI API key
+   - `GOOGLE_API_KEY` - Your Google API key
+   - `DISCORD_BOT_TOKEN` - Your Discord bot token
+   - Add other channel tokens as needed
 
-5. **Deploy:**
+4. **Deploy:**
    - Push to the `main` branch to trigger automatic deployment via GitHub Actions
-   - Or manually deploy with: `flyctl deploy`
+   - The workflow will automatically sync all secrets to Fly.io and deploy
 
 ### Post-Deployment
 
