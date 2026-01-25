@@ -30,6 +30,8 @@ This repository contains the configuration to deploy Clawdbot to Fly.io with aut
    
    **Required secrets:**
    - `FLY_API_TOKEN` - Get your token with: `flyctl auth token`
+   - `FLY_APP_NAME` - Your Fly.io app name (e.g., `flying-jarvis`)
+   - `FLY_REGION` - Your Fly.io region (e.g., `dfw`)
    - `CLAWDBOT_GATEWAY_TOKEN` - Generate with: `openssl rand -hex 32`
    - `ANTHROPIC_API_KEY` - Your Anthropic API key (e.g., `sk-ant-...`)
    

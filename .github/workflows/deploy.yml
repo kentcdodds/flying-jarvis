@@ -19,25 +19,28 @@ jobs:
       
       - name: Set Fly.io secrets from GitHub secrets
         run: |
-          flyctl secrets set CLAWDBOT_GATEWAY_TOKEN="${CLAWDBOT_GATEWAY_TOKEN}"
-          flyctl secrets set ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"
+          flyctl secrets set CLAWDBOT_GATEWAY_TOKEN="${CLAWDBOT_GATEWAY_TOKEN}" --app "${FLY_APP_NAME}"
+          flyctl secrets set ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" --app "${FLY_APP_NAME}"
           if [ -n "${OPENAI_API_KEY}" ]; then
-            flyctl secrets set OPENAI_API_KEY="${OPENAI_API_KEY}"
+            flyctl secrets set OPENAI_API_KEY="${OPENAI_API_KEY}" --app "${FLY_APP_NAME}"
           fi
           if [ -n "${GOOGLE_API_KEY}" ]; then
-            flyctl secrets set GOOGLE_API_KEY="${GOOGLE_API_KEY}"
+            flyctl secrets set GOOGLE_API_KEY="${GOOGLE_API_KEY}" --app "${FLY_APP_NAME}"
           fi
           if [ -n "${DISCORD_BOT_TOKEN}" ]; then
-            flyctl secrets set DISCORD_BOT_TOKEN="${DISCORD_BOT_TOKEN}"
+            flyctl secrets set DISCORD_BOT_TOKEN="${DISCORD_BOT_TOKEN}" --app "${FLY_APP_NAME}"
           fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
           CLAWDBOT_GATEWAY_TOKEN: ${{ secrets.CLAWDBOT_GATEWAY_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
       
-      - run: flyctl deploy --remote-only
+      - run: flyctl deploy --remote-only --app "${FLY_APP_NAME}" --region "${FLY_REGION}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
+          FLY_REGION: ${{ secrets.FLY_REGION }}
