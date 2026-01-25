@@ -27,6 +27,7 @@ jobs:
           [ -n "${GOOGLE_API_KEY}" ] && SECRETS+=("GOOGLE_API_KEY=${GOOGLE_API_KEY}")
           [ -n "${DISCORD_BOT_TOKEN}" ] && SECRETS+=("DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}")
           [ -n "${DISCORD_GUILD_ID}" ] && SECRETS+=("DISCORD_GUILD_ID=${DISCORD_GUILD_ID}")
+          [ -n "${CLOUDFLARE_TUNNEL_TOKEN}" ] && SECRETS+=("CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}")
           flyctl secrets set "${SECRETS[@]}" --app "${FLY_APP_NAME}" --stage
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -37,6 +38,7 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
       
       - run: flyctl deploy --remote-only --app "${FLY_APP_NAME}"
         env:
