@@ -36,5 +36,12 @@ if [ ! -f "$CONFIG_FILE" ]; then
   echo "You can customize this config via the UI or by editing the file directly"
 fi
 
+# Log the config file content on startup
+echo "==================================================================="
+echo "Clawdbot Configuration (from $CONFIG_FILE):"
+echo "==================================================================="
+cat "$CONFIG_FILE"
+echo "==================================================================="
+
 # Execute the CMD from Dockerfile
 exec "$@"
