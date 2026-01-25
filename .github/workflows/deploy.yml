@@ -26,6 +26,7 @@ jobs:
           [ -n "${OPENAI_API_KEY}" ] && SECRETS+=("OPENAI_API_KEY=${OPENAI_API_KEY}")
           [ -n "${GOOGLE_API_KEY}" ] && SECRETS+=("GOOGLE_API_KEY=${GOOGLE_API_KEY}")
           [ -n "${DISCORD_BOT_TOKEN}" ] && SECRETS+=("DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}")
+          [ -n "${DISCORD_GUILD_ID}" ] && SECRETS+=("DISCORD_GUILD_ID=${DISCORD_GUILD_ID}")
           flyctl secrets set "${SECRETS[@]}" --app "${FLY_APP_NAME}" --stage
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -35,6 +36,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
       
       - run: flyctl deploy --remote-only --app "${FLY_APP_NAME}" --region "${FLY_REGION}"
         env:

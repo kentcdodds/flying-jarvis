@@ -39,6 +39,7 @@ This repository contains the configuration to deploy Clawdbot to Fly.io with aut
    - `OPENAI_API_KEY` - Your OpenAI API key
    - `GOOGLE_API_KEY` - Your Google API key
    - `DISCORD_BOT_TOKEN` - Your Discord bot token
+   - `DISCORD_GUILD_ID` - Your Discord server/guild ID (automatically replaces `YOUR_GUILD_ID` placeholder in config)
    - Add other channel tokens as needed
 
 4. **Deploy:**
@@ -54,19 +55,39 @@ After deployment, you can:
    flyctl open
    ```
    Or visit: `https://flying-jarvis.fly.dev/`
+   
+   The default config is automatically created on first run. You can customize it through the UI or by editing `/data/clawdbot.json` directly.
 
 2. **View logs:**
    ```bash
    flyctl logs
    ```
 
-3. **SSH into the machine to configure:**
+3. **SSH into the machine (optional):**
    ```bash
    flyctl ssh console
    ```
+   
+   You can edit the config file at `/data/clawdbot.json` if needed. The default config includes:
+   - Discord integration enabled (requires `DISCORD_BOT_TOKEN` environment variable)
+   - Placeholder guild ID that needs to be replaced with your actual Discord server ID
+   - Claude Opus 4.5 as primary model with Sonnet 4.5 and GPT-4o as fallbacks
 
-4. **Create a config file** (if needed):
-   See the [Fly.io deployment guide](https://docs.clawd.bot/platforms/fly.md) for detailed configuration options.
+### Customizing the Configuration
+
+The application automatically creates a default config at `/data/clawdbot.json` on first startup. To customize:
+
+1. **Via the Control UI** (recommended):
+   - Access the UI at `https://flying-jarvis.fly.dev/`
+   - Navigate to the configuration section
+   - Make your changes through the interface
+
+2. **Via SSH** (advanced):
+   - SSH into the machine: `flyctl ssh console`
+   - Edit the config: `vi /data/clawdbot.json`
+   - Replace `YOUR_GUILD_ID` with your Discord server ID
+   - Add or modify channels, agents, or other settings
+   - Exit and the changes will take effect (may require restart)
 
 ### Troubleshooting
 

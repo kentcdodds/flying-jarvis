@@ -1,0 +1,48 @@
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-opus-4-5",
+        "fallbacks": ["anthropic/claude-sonnet-4-5", "openai/gpt-4o"]
+      },
+      "maxConcurrent": 4
+    },
+    "list": [
+      {
+        "id": "main",
+        "default": true
+      }
+    ]
+  },
+  "auth": {
+    "profiles": {
+      "anthropic:default": { "mode": "token", "provider": "anthropic" },
+      "openai:default": { "mode": "token", "provider": "openai" }
+    }
+  },
+  "bindings": [
+    {
+      "agentId": "main",
+      "match": { "channel": "discord" }
+    }
+  ],
+  "channels": {
+    "discord": {
+      "enabled": true,
+      "groupPolicy": "allowlist",
+      "guilds": {
+        "YOUR_GUILD_ID": {
+          "channels": { "general": { "allow": true } },
+          "requireMention": false
+        }
+      }
+    }
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "auto"
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.1.24"
+  }
+}
