@@ -37,6 +37,8 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # Log the config file content on startup
+# NOTE: Do not store API keys or tokens in the config file - use environment variables instead.
+# This log output is intended for troubleshooting configuration structure, not secrets.
 echo "==================================================================="
 echo "Clawdbot Configuration (from $CONFIG_FILE):"
 echo "==================================================================="
