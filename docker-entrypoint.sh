@@ -3,11 +3,13 @@ set -e
 
 # Start Cloudflare Tunnel if configured
 if command -v cloudflared >/dev/null 2>&1; then
-  if [ -n "${CLOUDFLARE_TUNNEL_TOKEN}" ]; then
+  cloudflare_token_raw="${CLOUDFLARE_TUNNEL_TOKEN:-}"
+  cloudflare_token_trimmed="$(printf "%s" "$cloudflare_token_raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  if [ -n "$cloudflare_token_trimmed" ]; then
     echo "Starting Cloudflare Tunnel..."
-    cloudflared tunnel --no-autoupdate run --token "${CLOUDFLARE_TUNNEL_TOKEN}" &
+    cloudflared tunnel --no-autoupdate run --token "$cloudflare_token_trimmed" &
   else
-    echo "CLOUDFLARE_TUNNEL_TOKEN not set; skipping cloudflared."
+    echo "Cloudflare tunnel token missing or blank; skipping cloudflared."
   fi
 fi
 
