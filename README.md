@@ -43,6 +43,7 @@ This repository contains the configuration to deploy Clawdbot to Fly.io with aut
    - `DISCORD_GUILD_ID` - Your Discord server/guild ID (automatically replaces `YOUR_GUILD_ID` placeholder in config)
    - Add other channel tokens as needed
    - `CLOUDFLARE_TUNNEL_TOKEN` - Cloudflare Tunnel token (for private access)
+- `CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH` - Set to `true` to allow token-only Control UI auth over tunnels (skips device pairing)
 
 4. **Deploy:**
    - Push to the `main` branch to trigger automatic deployment via GitHub Actions
@@ -98,5 +99,6 @@ The application automatically creates a default config at `/data/clawdbot.json` 
 - **Config not persisting:** Ensure `CLAWDBOT_STATE_DIR=/data` is set (already configured in fly.toml)
 - **Cloudflare Tunnel not reachable:** Ensure `CLOUDFLARE_TUNNEL_TOKEN` is set and the tunnel
   points to `http://127.0.0.1:3000`
+- **Control UI token rejected over tunnel:** Set `CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH=true` and redeploy to allow token-only auth (skips device pairing).
 
 For more details, see the [official Clawdbot Fly.io documentation](https://docs.clawd.bot/platforms/fly.md).
