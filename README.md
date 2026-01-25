@@ -39,6 +39,7 @@ This repository contains the configuration to deploy Clawdbot to Fly.io with aut
    - `OPENAI_API_KEY` - Your OpenAI API key
    - `GOOGLE_API_KEY` - Your Google API key
    - `DISCORD_BOT_TOKEN` - Your Discord bot token
+   - `DISCORD_GUILD_ID` - Your Discord server/guild ID (automatically replaces `YOUR_GUILD_ID` placeholder in config)
    - Add other channel tokens as needed
 
 4. **Deploy:**
