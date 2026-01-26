@@ -20,8 +20,21 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Clone the clawdbot repository
+# CLAWDBOT_VERSION can be:
+#   - "main" (default): Use the main branch
+#   - "latest": Use the latest release tag
+#   - A specific tag or commit SHA
+ARG CLAWDBOT_VERSION=main
 RUN git clone https://github.com/clawdbot/clawdbot.git . && \
-    git checkout main
+    if [ "$CLAWDBOT_VERSION" = "latest" ]; then \
+      echo "Fetching latest release tag..." && \
+      LATEST_TAG=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "main") && \
+      echo "Using latest release: $LATEST_TAG" && \
+      git checkout "$LATEST_TAG"; \
+    else \
+      echo "Using version: $CLAWDBOT_VERSION" && \
+      git checkout "$CLAWDBOT_VERSION"; \
+    fi
 
 ARG CLAWDBOT_DOCKER_APT_PACKAGES=""
 RUN if [ -n "$CLAWDBOT_DOCKER_APT_PACKAGES" ]; then \

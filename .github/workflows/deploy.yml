@@ -11,6 +11,11 @@ on:
         required: false
         type: boolean
         default: false
+      clawdbot_version:
+        description: 'Clawdbot version (main, latest, or specific tag/commit)'
+        required: false
+        type: string
+        default: 'latest'
 
 jobs:
   deploy:
@@ -50,8 +55,9 @@ jobs:
           CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
           CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH: ${{ secrets.CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH }}
 
-      - run: flyctl deploy --remote-only --app "${FLY_APP_NAME}"
+      - run: flyctl deploy --remote-only --app "${FLY_APP_NAME}" --build-arg CLAWDBOT_VERSION="${CLAWDBOT_VERSION}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
           FLY_REGION: ${{ secrets.FLY_REGION }}
+          CLAWDBOT_VERSION: ${{ inputs.clawdbot_version || 'latest' }}

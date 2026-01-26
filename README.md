@@ -48,11 +48,16 @@ This repository contains the configuration to deploy Clawdbot to Fly.io with aut
 4. **Deploy:**
    - Push to the `main` branch to trigger automatic deployment via GitHub Actions
    - The workflow will automatically sync all secrets to Fly.io and deploy
+   - By default, deployments now use the **latest stable release** of Clawdbot instead of the main branch
    
-   **Manual deployment with config reset:**
+   **Manual deployment with options:**
    - Go to Actions tab > Deploy to Fly.io workflow
    - Click "Run workflow"
-   - Check "Reset config to default" to delete the existing config and create a fresh one
+   - **Clawdbot version**: Choose which version to deploy:
+     - `latest` (default): Uses the latest stable release tag
+     - `main`: Uses the main branch (bleeding edge)
+     - Any specific tag (e.g., `v1.2.3`) or commit SHA
+   - **Reset config to default**: Check to delete the existing config and create a fresh one
    - This is useful when you want to start over with the default configuration
 
 ### Post-Deployment
@@ -97,6 +102,26 @@ The application automatically creates a default config at `/data/clawdbot.json` 
    - Note: If you set the `DISCORD_GUILD_ID` environment variable, the `YOUR_GUILD_ID` placeholder will be automatically replaced on each startup
    - Add or modify channels, agents, or other settings
    - Exit and the changes will take effect (may require restart)
+
+### Advanced Options
+
+#### Building with a specific Clawdbot version
+
+If you need to build the Docker image locally with a specific version:
+
+```bash
+# Use the latest release (default)
+docker build --build-arg CLAWDBOT_VERSION=latest -t flying-jarvis .
+
+# Use the main branch
+docker build --build-arg CLAWDBOT_VERSION=main -t flying-jarvis .
+
+# Use a specific tag
+docker build --build-arg CLAWDBOT_VERSION=v1.2.3 -t flying-jarvis .
+
+# Use a specific commit
+docker build --build-arg CLAWDBOT_VERSION=abc1234 -t flying-jarvis .
+```
 
 ### Troubleshooting
 
