@@ -28,7 +28,12 @@ ARG CLAWDBOT_VERSION=main
 RUN git clone https://github.com/clawdbot/clawdbot.git . && \
     if [ "$CLAWDBOT_VERSION" = "latest" ]; then \
       echo "Fetching latest release tag..." && \
-      LATEST_TAG=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "main") && \
+      git fetch --tags && \
+      LATEST_TAG=$(git tag -l --sort=-v:refname | head -n 1) && \
+      if [ -z "$LATEST_TAG" ]; then \
+        echo "Warning: No tags found, falling back to main branch" && \
+        LATEST_TAG="main"; \
+      fi && \
       echo "Using latest release: $LATEST_TAG" && \
       git checkout "$LATEST_TAG"; \
     else \
