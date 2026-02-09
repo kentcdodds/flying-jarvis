@@ -124,7 +124,7 @@ jobs:
           if [ "${RESET_CONFIG}" = "true" ]; then
             flyctl secrets set RESET_CONFIG=true --app "${FLY_APP_NAME}" --stage
           else
-            flyctl secrets unset RESET_CONFIG --app "${FLY_APP_NAME}" || true
+            flyctl secrets unset RESET_CONFIG --app "${FLY_APP_NAME}" --stage || true
           fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
