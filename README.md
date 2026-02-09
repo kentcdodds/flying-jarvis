@@ -69,6 +69,7 @@ Optional:
   - `openclaw_version` (`latest` by default; can be `main`, tag, or commit SHA)
 - Optional one-shot reset:
   - `reset_config = true` removes `/data/openclaw.json` before startup
+  - workflow clears the `RESET_CONFIG` secret after deployment so future restarts are not repeatedly reset
 
 The deploy workflow renders app name and primary region from secrets, so forks only need to set secrets and deploy.
 It also creates the Fly app and persistent volume automatically when missing.

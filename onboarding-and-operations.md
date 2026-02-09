@@ -78,6 +78,7 @@ Manual workflow inputs:
   - specific tag or commit
 - `reset_config`:
   - set `true` to force a fresh `/data/openclaw.json` on startup
+  - the workflow clears `RESET_CONFIG` after deploy so the reset remains one-shot
 
 ## 6) Validate after deploy
 

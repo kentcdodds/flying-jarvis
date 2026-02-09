@@ -137,3 +137,10 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
           OPENCLAW_VERSION: ${{ inputs.openclaw_version || 'latest' }}
+
+      - name: Clear one-shot reset flag
+        if: ${{ always() && inputs.reset_config == true }}
+        run: flyctl secrets unset RESET_CONFIG --app "${FLY_APP_NAME}" || true
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
