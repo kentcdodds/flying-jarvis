@@ -70,22 +70,22 @@ Optional:
 
 Use these examples when you populate GitHub repository secrets:
 
-| Secret | Example value | How to get it |
-|---|---|---|
-| `FLY_API_TOKEN` | `fo1_...` | `flyctl auth login` then `flyctl auth token` |
-| `FLY_APP_NAME` | `my-openclaw` | Choose a unique app name you want on Fly |
-| `FLY_REGION` | `iad` | `fly platform regions` |
-| `OPENCLAW_GATEWAY_TOKEN` | `f0f57a7f...` (64 hex chars) | `openssl rand -hex 32` |
-| `CLOUDFLARE_TUNNEL_TOKEN` | `eyJhIjoi...` | Cloudflare Zero Trust tunnel dashboard, or `cloudflared tunnel token <tunnel-name>` |
-| `ANTHROPIC_API_KEY` | `sk-ant-...` | Anthropic Console |
-| `OPENAI_API_KEY` | `sk-proj-...` | OpenAI API keys page |
-| `GOOGLE_API_KEY` | `AIza...` | Google AI Studio / Google Cloud credentials |
-| `DISCORD_BOT_TOKEN` | `MTA...` | Discord Developer Portal → Bot token |
-| `DISCORD_GUILD_ID` | `123456789012345678` | Discord Developer Mode → copy server ID |
-| `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` | `false` (recommended) or `true` | Leave unset for secure default (`false` enforced by workflow) |
-| `FLY_ORG` | `personal` | `fly orgs list` (optional) |
-| `FLY_VOLUME_NAME` | `openclaw_data` | Optional override for volume name |
-| `FLY_VOLUME_SIZE_GB` | `1` | Optional integer GB size (`>= 1`) |
+| Secret | Required? | Example value | How to get it | Default if optional |
+|---|---|---|---|---|
+| `FLY_API_TOKEN` | Yes | `fo1_...` | `flyctl auth login` then `flyctl auth token` | n/a |
+| `FLY_APP_NAME` | Yes | `my-openclaw` | Choose a unique app name you want on Fly | n/a |
+| `FLY_REGION` | Yes | `iad` | `fly platform regions` | n/a |
+| `OPENCLAW_GATEWAY_TOKEN` | Yes | `f0f57a7f...` (64 hex chars) | `openssl rand -hex 32` | n/a |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Yes | `eyJhIjoi...` | Cloudflare Zero Trust tunnel dashboard, or `cloudflared tunnel token <tunnel-name>` | n/a |
+| `ANTHROPIC_API_KEY` | One provider key required | `sk-ant-...` | Anthropic Console | Unset unless you add it |
+| `OPENAI_API_KEY` | One provider key required | `sk-proj-...` | OpenAI API keys page | Unset unless you add it |
+| `GOOGLE_API_KEY` | One provider key required | `AIza...` | Google AI Studio / Google Cloud credentials | Unset unless you add it |
+| `DISCORD_BOT_TOKEN` | No | `MTA...` | Discord Developer Portal → Bot token | Unset (Discord channel inactive) |
+| `DISCORD_GUILD_ID` | No | `123456789012345678` | Discord Developer Mode → copy server ID | Unset (no guild placeholder replacement) |
+| `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` | No | `false` (recommended) or `true` | Set `true` only when you intentionally want token-only auth without pairing | `false` enforced by workflow when unset |
+| `FLY_ORG` | No | `personal` | `fly orgs list` | Unset (Fly default org context) |
+| `FLY_VOLUME_NAME` | No | `openclaw_data` | Optional override for volume name | `openclaw_data` |
+| `FLY_VOLUME_SIZE_GB` | No | `1` | Optional integer GB size (`>= 1`) | `1` |
 
 ## 5) Deploy
 
