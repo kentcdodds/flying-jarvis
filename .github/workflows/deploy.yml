@@ -79,7 +79,8 @@ jobs:
             fi
           fi
 
-          if flyctl volumes list --app "${FLY_APP_NAME}" | rg -q "\\b${FLY_VOLUME_NAME}\\b"; then
+          EXISTING_VOLUMES="$(flyctl volumes list --app "${FLY_APP_NAME}" | awk 'NR>1 {print $1}')"
+          if printf "%s\n" "${EXISTING_VOLUMES}" | rg --fixed-strings --line-regexp --quiet -- "${FLY_VOLUME_NAME}"; then
             echo "Volume exists: ${FLY_VOLUME_NAME}"
           else
             echo "Creating volume ${FLY_VOLUME_NAME} in region ${FLY_REGION} (${FLY_VOLUME_SIZE_GB}GB)"
