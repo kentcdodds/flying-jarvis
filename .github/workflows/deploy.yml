@@ -69,7 +69,7 @@ jobs:
           sed -i "s/^primary_region = .*/primary_region = \"${FLY_REGION}\"/" fly.generated.toml
           sed -i "s/^  source = .*/  source = \"${FLY_VOLUME_NAME}\"/" fly.generated.toml
           echo "Rendered deploy config:"
-          rg -n -e "^(app|primary_region) = " -e "^  source = " fly.generated.toml
+          grep -n -E "^(app|primary_region) = |^  source = " fly.generated.toml
         env:
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
           FLY_REGION: ${{ secrets.FLY_REGION }}
@@ -91,7 +91,7 @@ jobs:
           fi
 
           EXISTING_VOLUMES="$(flyctl volumes list --app "${FLY_APP_NAME}" | awk 'NR>1 {print $3}')"
-          if printf "%s\n" "${EXISTING_VOLUMES}" | rg --fixed-strings --line-regexp --quiet -- "${FLY_VOLUME_NAME}"; then
+          if printf "%s\n" "${EXISTING_VOLUMES}" | grep -Fxq -- "${FLY_VOLUME_NAME}"; then
             echo "Volume exists: ${FLY_VOLUME_NAME}"
           else
             echo "Creating volume ${FLY_VOLUME_NAME} in region ${FLY_REGION} (${FLY_VOLUME_SIZE_GB}GB)"
