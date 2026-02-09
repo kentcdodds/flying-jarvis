@@ -1,5 +1,8 @@
-app = "set-in-github-actions"
-primary_region = "set-in-github-actions"
+# These defaults are overridden in GitHub Actions using secrets:
+# - FLY_APP_NAME
+# - FLY_REGION
+app = "openclaw-fly-template"
+primary_region = "iad"
 
 [build]
   dockerfile = "Dockerfile"
