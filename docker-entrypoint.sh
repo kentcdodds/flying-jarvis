@@ -21,36 +21,44 @@ is_truthy() {
 
 maybe_trim_gateway_token() {
   local raw trimmed
-  raw="${CLAWDBOT_GATEWAY_TOKEN:-}"
+  raw="${OPENCLAW_GATEWAY_TOKEN:-}"
   if [ -z "$raw" ]; then
     return
   fi
   trimmed="$(trim_value "$raw")"
   if [ "$trimmed" != "$raw" ]; then
-    echo "Trimming whitespace from CLAWDBOT_GATEWAY_TOKEN."
+    echo "Trimming whitespace from OPENCLAW_GATEWAY_TOKEN."
   fi
-  export CLAWDBOT_GATEWAY_TOKEN="$trimmed"
+  export OPENCLAW_GATEWAY_TOKEN="$trimmed"
 }
 
-maybe_enable_insecure_control_ui() {
-  if ! is_truthy "${CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH:-}"; then
-    return
-  fi
-  if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Config file not found at $CONFIG_FILE; skipping insecure control UI toggle."
+maybe_sync_insecure_control_ui() {
+  if [ -z "${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH+x}" ]; then
     return
   fi
 
-  CONFIG_FILE="$CONFIG_FILE" node - <<'NODE'
+  local desired
+  desired="false"
+  if is_truthy "${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH:-}"; then
+    desired="true"
+  fi
+
+  if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Config file not found at $CONFIG_FILE; skipping control UI auth sync."
+    return
+  fi
+
+  CONFIG_FILE="$CONFIG_FILE" OPENCLAW_ALLOW_INSECURE_AUTH="$desired" node - <<'NODE'
 const fs = require("fs");
 
 const configPath = process.env.CONFIG_FILE;
+const desiredAllowInsecureAuth = process.env.OPENCLAW_ALLOW_INSECURE_AUTH === "true";
 if (!configPath) {
-  console.error("CONFIG_FILE not set; skipping insecure control UI toggle.");
+  console.error("CONFIG_FILE not set; skipping control UI auth sync.");
   process.exit(0);
 }
 if (!fs.existsSync(configPath)) {
-  console.error(`Config file not found at ${configPath}; skipping insecure control UI toggle.`);
+  console.error(`Config file not found at ${configPath}; skipping control UI auth sync.`);
   process.exit(0);
 }
 
@@ -72,12 +80,12 @@ try {
 
 config.gateway = config.gateway ?? {};
 config.gateway.controlUi = config.gateway.controlUi ?? {};
-if (config.gateway.controlUi.allowInsecureAuth !== true) {
-  config.gateway.controlUi.allowInsecureAuth = true;
+if (config.gateway.controlUi.allowInsecureAuth !== desiredAllowInsecureAuth) {
+  config.gateway.controlUi.allowInsecureAuth = desiredAllowInsecureAuth;
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
-  console.log("Enabled gateway.controlUi.allowInsecureAuth in config.");
+  console.log(`Set gateway.controlUi.allowInsecureAuth=${desiredAllowInsecureAuth} in config.`);
 } else {
-  console.log("gateway.controlUi.allowInsecureAuth already true; leaving config as-is.");
+  console.log(`gateway.controlUi.allowInsecureAuth already ${desiredAllowInsecureAuth}; leaving config as-is.`);
 }
 NODE
 }
@@ -97,8 +105,8 @@ fi
 maybe_trim_gateway_token
 
 # Initialize config file if it doesn't exist
-CONFIG_DIR="${CLAWDBOT_STATE_DIR:-/data}"
-CONFIG_FILE="$CONFIG_DIR/clawdbot.json"
+CONFIG_DIR="${OPENCLAW_STATE_DIR:-/data}"
+CONFIG_FILE="$CONFIG_DIR/openclaw.json"
 
 # Create config directory if it doesn't exist
 mkdir -p "$CONFIG_DIR"
@@ -133,13 +141,11 @@ if [ -n "${DISCORD_GUILD_ID}" ]; then
   fi
 fi
 
-maybe_enable_insecure_control_ui
+maybe_sync_insecure_control_ui
 
-# Log the clawdbot config file on startup
+# Log config path on startup (without dumping contents)
 if [ -f "$CONFIG_FILE" ]; then
-  echo "=== Clawdbot Config File ($CONFIG_FILE) ==="
-  cat "$CONFIG_FILE"
-  echo "=== End of Clawdbot Config File ==="
+  echo "OpenClaw config ready at $CONFIG_FILE"
 else
   echo "Warning: Config file not found at $CONFIG_FILE"
 fi
