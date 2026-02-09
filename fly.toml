@@ -1,24 +1,28 @@
-app = "flying-jarvis"
-primary_region = "dfw"
+app = "set-in-github-actions"
+primary_region = "set-in-github-actions"
 
 [build]
   dockerfile = "Dockerfile"
 
 [env]
   NODE_ENV = "production"
-  CLAWDBOT_PREFER_PNPM = "1"
-  CLAWDBOT_STATE_DIR = "/data"
+  OPENCLAW_PREFER_PNPM = "1"
+  OPENCLAW_STATE_DIR = "/data"
   NODE_OPTIONS = "--max-old-space-size=1536"
 
 [processes]
-  app = "node dist/index.js gateway --port 3000 --bind auto"
+  app = "node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan"
 
 [[vm]]
   size = "shared-cpu-2x"
   memory = "2048mb"
 
+# This app is intentionally private-by-default:
+# no [http_service] and no [[services]] means no public Fly ingress.
+# Access should be through Cloudflare Tunnel + Cloudflare Access policies.
+#
 # Volume must be created before first deployment:
-# flyctl volumes create clawdbot_data --region dfw --size 1
+# flyctl volumes create openclaw_data --region <region> --size 1
 [mounts]
-  source = "clawdbot_data"
+  source = "openclaw_data"
   destination = "/data"

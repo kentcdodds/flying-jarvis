@@ -21,19 +21,19 @@ is_truthy() {
 
 maybe_trim_gateway_token() {
   local raw trimmed
-  raw="${CLAWDBOT_GATEWAY_TOKEN:-}"
+  raw="${OPENCLAW_GATEWAY_TOKEN:-}"
   if [ -z "$raw" ]; then
     return
   fi
   trimmed="$(trim_value "$raw")"
   if [ "$trimmed" != "$raw" ]; then
-    echo "Trimming whitespace from CLAWDBOT_GATEWAY_TOKEN."
+    echo "Trimming whitespace from OPENCLAW_GATEWAY_TOKEN."
   fi
-  export CLAWDBOT_GATEWAY_TOKEN="$trimmed"
+  export OPENCLAW_GATEWAY_TOKEN="$trimmed"
 }
 
 maybe_enable_insecure_control_ui() {
-  if ! is_truthy "${CLAWDBOT_CONTROL_UI_ALLOW_INSECURE_AUTH:-}"; then
+  if ! is_truthy "${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH:-}"; then
     return
   fi
   if [ ! -f "$CONFIG_FILE" ]; then
@@ -97,8 +97,8 @@ fi
 maybe_trim_gateway_token
 
 # Initialize config file if it doesn't exist
-CONFIG_DIR="${CLAWDBOT_STATE_DIR:-/data}"
-CONFIG_FILE="$CONFIG_DIR/clawdbot.json"
+CONFIG_DIR="${OPENCLAW_STATE_DIR:-/data}"
+CONFIG_FILE="$CONFIG_DIR/openclaw.json"
 
 # Create config directory if it doesn't exist
 mkdir -p "$CONFIG_DIR"
@@ -135,11 +135,9 @@ fi
 
 maybe_enable_insecure_control_ui
 
-# Log the clawdbot config file on startup
+# Log config path on startup (without dumping contents)
 if [ -f "$CONFIG_FILE" ]; then
-  echo "=== Clawdbot Config File ($CONFIG_FILE) ==="
-  cat "$CONFIG_FILE"
-  echo "=== End of Clawdbot Config File ==="
+  echo "OpenClaw config ready at $CONFIG_FILE"
 else
   echo "Warning: Config file not found at $CONFIG_FILE"
 fi
