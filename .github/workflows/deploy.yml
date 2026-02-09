@@ -95,7 +95,7 @@ jobs:
             echo "Volume exists: ${FLY_VOLUME_NAME}"
           else
             echo "Creating volume ${FLY_VOLUME_NAME} in region ${FLY_REGION} (${FLY_VOLUME_SIZE_GB}GB)"
-            flyctl volumes create "${FLY_VOLUME_NAME}" --app "${FLY_APP_NAME}" --region "${FLY_REGION}" --size "${FLY_VOLUME_SIZE_GB}"
+            flyctl volumes create "${FLY_VOLUME_NAME}" --app "${FLY_APP_NAME}" --region "${FLY_REGION}" --size "${FLY_VOLUME_SIZE_GB}" --yes
           fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
