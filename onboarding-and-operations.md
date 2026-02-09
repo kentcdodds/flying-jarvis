@@ -16,21 +16,19 @@ Useful docs:
 - Cloudflare Tunnel: <https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/>
 - Cloudflare Access policies: <https://developers.cloudflare.com/cloudflare-one/access-controls/policies/>
 
-## 2) Create Fly app + volume
+## 2) Choose Fly app + region
 
-Choose your app name and region first (must match secrets in GitHub):
+Pick values for:
 
-```bash
-flyctl apps create <your-fly-app-name>
-flyctl volumes create openclaw_data --region <your-region> --size 1
-```
+- app name (`FLY_APP_NAME`)
+- region (`FLY_REGION`)
 
-Example:
+The workflow will create the app and volume automatically if missing.
+Defaults:
 
-```bash
-flyctl apps create my-openclaw
-flyctl volumes create openclaw_data --region iad --size 1
-```
+- volume name: `openclaw_data` (override with `FLY_VOLUME_NAME`)
+- volume size: `1` GB (override with `FLY_VOLUME_SIZE_GB`)
+- optional org selector: `FLY_ORG`
 
 ## 3) Configure Cloudflare Tunnel ingress
 
@@ -64,6 +62,9 @@ Optional:
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_GUILD_ID`
 - `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH`
+- `FLY_ORG`
+- `FLY_VOLUME_NAME`
+- `FLY_VOLUME_SIZE_GB`
 
 ## 5) Deploy
 

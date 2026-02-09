@@ -29,8 +29,8 @@ References:
 
 ## Quick start
 
-1. Create a Fly app and volume.
-2. Add GitHub Actions secrets.
+1. Add required GitHub Actions secrets.
+2. (Optional) Add advanced Fly secrets (`FLY_ORG`, `FLY_VOLUME_NAME`, `FLY_VOLUME_SIZE_GB`).
 3. Push to `main` (or run workflow manually).
 4. Access OpenClaw through your Cloudflare Access-protected hostname.
 
@@ -55,6 +55,9 @@ Optional:
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_GUILD_ID`
 - `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` (set `true` only if you intentionally want token-only UI auth without pairing)
+- `FLY_ORG` (optional Fly organization slug if your token has access to multiple orgs)
+- `FLY_VOLUME_NAME` (defaults to `openclaw_data`)
+- `FLY_VOLUME_SIZE_GB` (defaults to `1`)
 
 ## Deploy workflow behavior
 
@@ -68,6 +71,7 @@ Optional:
   - `reset_config = true` removes `/data/openclaw.json` before startup
 
 The deploy workflow renders app name and primary region from secrets, so forks only need to set secrets and deploy.
+It also creates the Fly app and persistent volume automatically when missing.
 
 ## Build image locally
 

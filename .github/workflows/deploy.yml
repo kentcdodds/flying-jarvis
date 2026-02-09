@@ -56,11 +56,42 @@ jobs:
           cp fly.toml fly.generated.toml
           sed -i "s/^app = .*/app = \"${FLY_APP_NAME}\"/" fly.generated.toml
           sed -i "s/^primary_region = .*/primary_region = \"${FLY_REGION}\"/" fly.generated.toml
+          sed -i "s/^  source = .*/  source = \"${FLY_VOLUME_NAME}\"/" fly.generated.toml
           echo "Rendered deploy config:"
-          rg -n "^(app|primary_region) = " fly.generated.toml
+          rg -n -e "^(app|primary_region) = " -e "^  source = " fly.generated.toml
         env:
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
           FLY_REGION: ${{ secrets.FLY_REGION }}
+          FLY_VOLUME_NAME: ${{ secrets.FLY_VOLUME_NAME || 'openclaw_data' }}
+
+      - name: Ensure Fly app and volume exist
+        run: |
+          set -euo pipefail
+
+          if flyctl apps show "${FLY_APP_NAME}" >/dev/null 2>&1; then
+            echo "Fly app exists: ${FLY_APP_NAME}"
+          else
+            echo "Creating Fly app: ${FLY_APP_NAME}"
+            if [ -n "${FLY_ORG}" ]; then
+              flyctl apps create "${FLY_APP_NAME}" --org "${FLY_ORG}"
+            else
+              flyctl apps create "${FLY_APP_NAME}"
+            fi
+          fi
+
+          if flyctl volumes list --app "${FLY_APP_NAME}" | rg -q "\\b${FLY_VOLUME_NAME}\\b"; then
+            echo "Volume exists: ${FLY_VOLUME_NAME}"
+          else
+            echo "Creating volume ${FLY_VOLUME_NAME} in region ${FLY_REGION} (${FLY_VOLUME_SIZE_GB}GB)"
+            flyctl volumes create "${FLY_VOLUME_NAME}" --app "${FLY_APP_NAME}" --region "${FLY_REGION}" --size "${FLY_VOLUME_SIZE_GB}"
+          fi
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
+          FLY_REGION: ${{ secrets.FLY_REGION }}
+          FLY_ORG: ${{ secrets.FLY_ORG }}
+          FLY_VOLUME_NAME: ${{ secrets.FLY_VOLUME_NAME || 'openclaw_data' }}
+          FLY_VOLUME_SIZE_GB: ${{ secrets.FLY_VOLUME_SIZE_GB || '1' }}
 
       - name: Set Fly.io secrets from GitHub secrets
         run: |
