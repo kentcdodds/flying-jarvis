@@ -61,7 +61,7 @@ Optional:
 
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_GUILD_ID`
-- `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH`
+- `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` (defaults to `false` each deploy unless explicitly set)
 - `FLY_ORG`
 - `FLY_VOLUME_NAME`
 - `FLY_VOLUME_SIZE_GB`

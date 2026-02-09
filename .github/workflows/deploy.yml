@@ -100,18 +100,14 @@ jobs:
           SECRETS=(
             "OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}"
             "CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}"
+            "OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH=${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH_EFFECTIVE}"
           )
           [ -n "${ANTHROPIC_API_KEY}" ] && SECRETS+=("ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}")
           [ -n "${OPENAI_API_KEY}" ] && SECRETS+=("OPENAI_API_KEY=${OPENAI_API_KEY}")
           [ -n "${GOOGLE_API_KEY}" ] && SECRETS+=("GOOGLE_API_KEY=${GOOGLE_API_KEY}")
           [ -n "${DISCORD_BOT_TOKEN}" ] && SECRETS+=("DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}")
           [ -n "${DISCORD_GUILD_ID}" ] && SECRETS+=("DISCORD_GUILD_ID=${DISCORD_GUILD_ID}")
-          [ -n "${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH}" ] && SECRETS+=("OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH=${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH}")
           flyctl secrets set "${SECRETS[@]}" --app "${FLY_APP_NAME}" --stage
-
-          if [ -z "${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH}" ]; then
-            flyctl secrets unset OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH --app "${FLY_APP_NAME}" || true
-          fi
 
           if [ "${RESET_CONFIG}" = "true" ]; then
             flyctl secrets set RESET_CONFIG=true --app "${FLY_APP_NAME}" --stage
@@ -128,7 +124,7 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
-          OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH: ${{ secrets.OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH }}
+          OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH_EFFECTIVE: ${{ secrets.OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH || 'false' }}
           RESET_CONFIG: ${{ inputs.reset_config || 'false' }}
 
       - name: Deploy

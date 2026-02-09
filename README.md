@@ -54,7 +54,7 @@ Optional:
 
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_GUILD_ID`
-- `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` (set `true` only if you intentionally want token-only UI auth without pairing)
+- `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` (set `true` only if you intentionally want token-only UI auth without pairing; default `false` is enforced on deploy)
 - `FLY_ORG` (optional Fly organization slug if your token has access to multiple orgs)
 - `FLY_VOLUME_NAME` (defaults to `openclaw_data`)
 - `FLY_VOLUME_SIZE_GB` (defaults to `1`)
