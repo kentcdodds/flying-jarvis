@@ -95,6 +95,8 @@ jobs:
 
       - name: Set Fly.io secrets from GitHub secrets
         run: |
+          set -euo pipefail
+
           SECRETS=(
             "OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}"
             "CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}"
@@ -106,6 +108,10 @@ jobs:
           [ -n "${DISCORD_GUILD_ID}" ] && SECRETS+=("DISCORD_GUILD_ID=${DISCORD_GUILD_ID}")
           [ -n "${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH}" ] && SECRETS+=("OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH=${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH}")
           flyctl secrets set "${SECRETS[@]}" --app "${FLY_APP_NAME}" --stage
+
+          if [ -z "${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH}" ]; then
+            flyctl secrets unset OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH --app "${FLY_APP_NAME}" || true
+          fi
 
           if [ "${RESET_CONFIG}" = "true" ]; then
             flyctl secrets set RESET_CONFIG=true --app "${FLY_APP_NAME}" --stage
