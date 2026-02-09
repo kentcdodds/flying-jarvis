@@ -31,6 +31,8 @@ jobs:
 
       - name: Validate required secrets
         run: |
+          set -euo pipefail
+
           [ -n "${FLY_API_TOKEN}" ] || { echo "Missing required secret: FLY_API_TOKEN"; exit 1; }
           [ -n "${FLY_APP_NAME}" ] || { echo "Missing required secret: FLY_APP_NAME"; exit 1; }
           [ -n "${FLY_REGION}" ] || { echo "Missing required secret: FLY_REGION"; exit 1; }
@@ -41,6 +43,14 @@ jobs:
             echo "Set at least one model provider key: ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY"
             exit 1
           fi
+
+          case "${FLY_VOLUME_SIZE_GB}" in
+            ''|*[!0-9]*)
+              echo "FLY_VOLUME_SIZE_GB must be a positive integer (got: ${FLY_VOLUME_SIZE_GB})"
+              exit 1
+              ;;
+          esac
+          [ "${FLY_VOLUME_SIZE_GB}" -ge 1 ] || { echo "FLY_VOLUME_SIZE_GB must be >= 1"; exit 1; }
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
@@ -50,6 +60,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          FLY_VOLUME_SIZE_GB: ${{ secrets.FLY_VOLUME_SIZE_GB || '1' }}
 
       - name: Render deploy fly.toml from secrets
         run: |
