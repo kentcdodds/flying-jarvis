@@ -59,6 +59,25 @@ Optional:
 - `FLY_VOLUME_NAME` (defaults to `openclaw_data`)
 - `FLY_VOLUME_SIZE_GB` (defaults to `1`)
 
+### Secret value examples + how to get them
+
+| Secret | Example value | How to get it |
+|---|---|---|
+| `FLY_API_TOKEN` | `fo1_...` | Run `flyctl auth token` after `flyctl auth login`. |
+| `FLY_APP_NAME` | `my-openclaw` | Choose your own unique Fly app name (lowercase letters, digits, dashes). |
+| `FLY_REGION` | `iad` | Run `fly platform regions` and pick a region code near your users. |
+| `OPENCLAW_GATEWAY_TOKEN` | `f0f57a7f...` (64 hex chars) | Generate with `openssl rand -hex 32`. |
+| `CLOUDFLARE_TUNNEL_TOKEN` | `eyJhIjoi...` | Cloudflare Zero Trust dashboard → Networks/Connectors → Cloudflare Tunnels → your tunnel → copy token, or `cloudflared tunnel token <tunnel-name>`. |
+| `ANTHROPIC_API_KEY` | `sk-ant-...` | Anthropic Console API keys page. |
+| `OPENAI_API_KEY` | `sk-proj-...` | OpenAI API keys page. |
+| `GOOGLE_API_KEY` | `AIza...` | Google AI Studio / Google Cloud API credentials. |
+| `DISCORD_BOT_TOKEN` | `MTA...` | Discord Developer Portal → your application → Bot → Reset/Copy Token. |
+| `DISCORD_GUILD_ID` | `123456789012345678` | In Discord, enable Developer Mode, then copy server ID. |
+| `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` | `false` (recommended) or `true` | Set only if you intentionally want token-only UI auth without pairing. Workflow enforces `false` if unset. |
+| `FLY_ORG` | `personal` | Optional. Run `fly orgs list` and use the org slug you want to deploy into. |
+| `FLY_VOLUME_NAME` | `openclaw_data` | Optional custom volume name; defaults to `openclaw_data`. |
+| `FLY_VOLUME_SIZE_GB` | `1` | Optional integer GB size (must be `>= 1`). |
+
 ## Deploy workflow behavior
 
 - Workflow: **Deploy to Fly.io**
