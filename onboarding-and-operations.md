@@ -53,13 +53,14 @@ Required secrets:
 - `FLY_APP_NAME`
 - `FLY_REGION`
 - `OPENCLAW_GATEWAY_TOKEN`
-- `ANTHROPIC_API_KEY` (or equivalent provider key strategy)
+- at least one provider key:
+  - `ANTHROPIC_API_KEY`
+  - `OPENAI_API_KEY`
+  - or `GOOGLE_API_KEY`
 - `CLOUDFLARE_TUNNEL_TOKEN`
 
 Optional:
 
-- `OPENAI_API_KEY`
-- `GOOGLE_API_KEY`
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_GUILD_ID`
 - `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH`

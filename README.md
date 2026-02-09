@@ -44,13 +44,14 @@ Set these in **Settings → Secrets and variables → Actions**:
 - `FLY_APP_NAME` — Fly app name (for example `my-openclaw`)
 - `FLY_REGION` — Fly primary region (for example `iad`, `dfw`, `lhr`)
 - `OPENCLAW_GATEWAY_TOKEN` — `openssl rand -hex 32`
-- `ANTHROPIC_API_KEY` — required if using Anthropic models
+- at least one provider key:
+  - `ANTHROPIC_API_KEY`
+  - `OPENAI_API_KEY`
+  - or `GOOGLE_API_KEY`
 - `CLOUDFLARE_TUNNEL_TOKEN` — token for your Cloudflare Tunnel connector
 
 Optional:
 
-- `OPENAI_API_KEY`
-- `GOOGLE_API_KEY`
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_GUILD_ID`
 - `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` (set `true` only if you intentionally want token-only UI auth without pairing)
