@@ -90,7 +90,7 @@ jobs:
             fi
           fi
 
-          EXISTING_VOLUMES="$(flyctl volumes list --app "${FLY_APP_NAME}" | awk 'NR>1 {print $1}')"
+          EXISTING_VOLUMES="$(flyctl volumes list --app "${FLY_APP_NAME}" | awk 'NR>1 {print $3}')"
           if printf "%s\n" "${EXISTING_VOLUMES}" | rg --fixed-strings --line-regexp --quiet -- "${FLY_VOLUME_NAME}"; then
             echo "Volume exists: ${FLY_VOLUME_NAME}"
           else
