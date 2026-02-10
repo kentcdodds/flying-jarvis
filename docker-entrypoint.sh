@@ -292,7 +292,7 @@ PERSISTENT_WORKSPACE="${OPENCLAW_WORKSPACE_DIR:-$CONFIG_DIR/workspace}"
 if [ ! -d "$PERSISTENT_WORKSPACE" ]; then
   mkdir -p "$PERSISTENT_WORKSPACE"
   if [ -d "$WORKSPACE_SEED_DIR" ]; then
-    cp -rn "$WORKSPACE_SEED_DIR"/. "$PERSISTENT_WORKSPACE"/
+    cp -r "$WORKSPACE_SEED_DIR"/. "$PERSISTENT_WORKSPACE"/
   else
     echo "Workspace seed directory not found at $WORKSPACE_SEED_DIR; skipping seed copy."
   fi
