@@ -233,6 +233,21 @@ SESSIONS_DIR="$CONFIG_DIR/agents/main/sessions"
 mkdir -p "$CONFIG_DIR"
 chmod 700 "$CONFIG_DIR" || true
 
+# Persist agent workspace in the same volume that stores config/session state.
+WORKSPACE_DIR="/root/.openclaw/workspace"
+PERSISTENT_WORKSPACE="$CONFIG_DIR/workspace"
+
+# First run: seed persistent workspace with default files.
+if [ ! -d "$PERSISTENT_WORKSPACE" ]; then
+  mkdir -p "$PERSISTENT_WORKSPACE"
+  cp -rn "$WORKSPACE_DIR"/* "$PERSISTENT_WORKSPACE"/ 2>/dev/null || true
+fi
+
+# Always point runtime workspace to persistent storage.
+mkdir -p "$(dirname "$WORKSPACE_DIR")"
+rm -rf "$WORKSPACE_DIR"
+ln -sf "$PERSISTENT_WORKSPACE" "$WORKSPACE_DIR"
+
 # Ensure required runtime directories exist with restrictive permissions.
 mkdir -p "$CREDENTIALS_DIR" "$SESSIONS_DIR"
 chmod 700 "$CREDENTIALS_DIR" || true
