@@ -207,12 +207,27 @@ if (availableProviders.length > 0) {
     }),
   );
 
+  const fallbackProviders = new Set(
+    filteredExistingFallbacks.map((model) => providerFromModel(model)).filter(Boolean),
+  );
+  const missingFallbackProviders = availableProviders.filter(
+    (provider) => provider !== activePrimaryProvider && !fallbackProviders.has(provider),
+  );
+  const missingRecommendedFallbacks =
+    missingFallbackProviders.length === 0
+      ? []
+      : recommendedFallbacks.filter((model) =>
+          missingFallbackProviders.includes(providerFromModel(model)),
+        );
+
   const desiredFallbacks =
     // When we just changed primary (or no usable fallbacks exist), rebuild fallbacks from active providers.
     // Otherwise preserve the operator's existing, valid fallback ordering.
     primaryModelUpdated || filteredExistingFallbacks.length === 0
       ? recommendedFallbacks
-      : filteredExistingFallbacks;
+      : missingRecommendedFallbacks.length > 0
+        ? [...filteredExistingFallbacks, ...missingRecommendedFallbacks]
+        : filteredExistingFallbacks;
 
   if (!arraysEqual(existingFallbacks, desiredFallbacks)) {
     modelDefaults.fallbacks = desiredFallbacks;
