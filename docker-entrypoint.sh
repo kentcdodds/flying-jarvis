@@ -47,6 +47,7 @@ start_cloudflare_tunnel() {
 }
 
 CONFIG_DIR="${OPENCLAW_STATE_DIR:-/data}"
+APP_DIR="${OPENCLAW_APP_DIR:-/app}"
 CONFIG_FILE="$CONFIG_DIR/openclaw.json"
 CREDENTIALS_DIR="$CONFIG_DIR/credentials"
 SESSIONS_DIR="$CONFIG_DIR/agents/main/sessions"
@@ -82,12 +83,12 @@ fi
 if [ ! -f "$CONFIG_FILE" ]; then
   echo "Config file not found at $CONFIG_FILE"
   echo "Creating default config from template..."
-  cp /app/default-config.json "$CONFIG_FILE"
+  cp "$APP_DIR/default-config.json" "$CONFIG_FILE"
   echo "Default config created at $CONFIG_FILE"
 fi
 
 OPENCLAW_CONFIG_FILE="$CONFIG_FILE" OPENCLAW_STATE_DIR="$CONFIG_DIR" \
-  node /app/scripts/sync-runtime-config.mjs
+  node "$APP_DIR/scripts/sync-runtime-config.mjs"
 
 if [ -f "$CONFIG_FILE" ]; then
   echo "OpenClaw config ready at $CONFIG_FILE"
