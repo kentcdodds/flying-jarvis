@@ -10,7 +10,7 @@ If you want the shortest reliable setup:
 2. Deploy with workflow input `reset_config=true` (first deploy or when changing core auth/channel config).
 3. Open your Cloudflare hostname, then pair the browser/device once if prompted.
 4. Re-deploy later with `reset_config=false` for normal updates.
-5. Configure optional channels (such as Discord) in Control UI after first login.
+5. For Discord, set both `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` so startup auto-configures a working default channel binding.
 
 ## 1) Prerequisites
 
@@ -75,7 +75,7 @@ Optional:
 - `FLY_ORG`
 - `FLY_VOLUME_SIZE_GB`
 
-`DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` are only passed through as runtime secrets. This template no longer auto-wires Discord bindings/channels in the default config.
+When both `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` are set, startup auto-configures Discord plugin enablement, channel binding, and a default guild/channel entry in config.
 
 ### Secret value cookbook
 
@@ -198,7 +198,7 @@ flyctl ssh console -a <your-fly-app-name> -C 'sh -lc "npx openclaw status --deep
 
 - Confirm `DISCORD_BOT_TOKEN` is set in Fly secrets.
 - Confirm `DISCORD_GUILD_ID` matches the target Discord server.
-- Confirm Discord plugin/channel bindings were configured in Control UI or `/data/openclaw.json`.
+- Confirm `/data/openclaw.json` includes the auto-configured Discord plugin/channel entries after startup.
 - Verify gateway reachability:
 
 ```bash

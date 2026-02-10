@@ -24,6 +24,13 @@ function ensureObject(target, key) {
   return target[key];
 }
 
+function ensureArray(target, key) {
+  if (!Array.isArray(target[key])) {
+    target[key] = [];
+  }
+  return target[key];
+}
+
 const configPath = trimValue(process.env.OPENCLAW_CONFIG_FILE);
 if (!configPath) {
   console.error("OPENCLAW_CONFIG_FILE is required.");
@@ -58,6 +65,70 @@ if (Object.prototype.hasOwnProperty.call(process.env, "OPENCLAW_CONTROL_UI_ALLOW
     console.log(`Set gateway.controlUi.allowInsecureAuth=${desiredAllowInsecureAuth}`);
     changed = true;
   }
+}
+
+const discordBotToken = trimValue(process.env.DISCORD_BOT_TOKEN);
+const discordGuildId = trimValue(process.env.DISCORD_GUILD_ID);
+if (discordBotToken && discordGuildId) {
+  const plugins = ensureObject(config, "plugins");
+  const pluginEntries = ensureObject(plugins, "entries");
+  const discordPlugin = ensureObject(pluginEntries, "discord");
+  if (discordPlugin.enabled !== true) {
+    discordPlugin.enabled = true;
+    console.log("Set plugins.entries.discord.enabled=true");
+    changed = true;
+  }
+
+  const bindings = ensureArray(config, "bindings");
+  const hasDiscordBinding = bindings.some(
+    (binding) =>
+      binding &&
+      typeof binding === "object" &&
+      binding.agentId === "main" &&
+      binding.match &&
+      typeof binding.match === "object" &&
+      binding.match.channel === "discord",
+  );
+  if (!hasDiscordBinding) {
+    bindings.push({
+      agentId: "main",
+      match: {
+        channel: "discord",
+      },
+    });
+    console.log("Added default Discord binding for agent main");
+    changed = true;
+  }
+
+  const channels = ensureObject(config, "channels");
+  const discordChannel = ensureObject(channels, "discord");
+  if (discordChannel.enabled !== true) {
+    discordChannel.enabled = true;
+    console.log("Set channels.discord.enabled=true");
+    changed = true;
+  }
+  if (discordChannel.groupPolicy !== "allowlist") {
+    discordChannel.groupPolicy = "allowlist";
+    console.log("Set channels.discord.groupPolicy=allowlist");
+    changed = true;
+  }
+
+  const guilds = ensureObject(discordChannel, "guilds");
+  const guildConfig = ensureObject(guilds, discordGuildId);
+  const guildChannels = ensureObject(guildConfig, "channels");
+  const generalChannel = ensureObject(guildChannels, "general");
+  if (generalChannel.allow !== true) {
+    generalChannel.allow = true;
+    console.log(`Set channels.discord.guilds.${discordGuildId}.channels.general.allow=true`);
+    changed = true;
+  }
+  if (guildConfig.requireMention !== false) {
+    guildConfig.requireMention = false;
+    console.log(`Set channels.discord.guilds.${discordGuildId}.requireMention=false`);
+    changed = true;
+  }
+} else if (discordBotToken || discordGuildId) {
+  console.log("Skipping Discord auto-wiring: set both DISCORD_BOT_TOKEN and DISCORD_GUILD_ID.");
 }
 
 if (changed) {
