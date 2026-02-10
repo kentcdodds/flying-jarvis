@@ -219,15 +219,17 @@ if (availableProviders.length > 0) {
       : recommendedFallbacks.filter((model) =>
           missingFallbackProviders.includes(providerFromModel(model)),
         );
+  const mergedFallbacks =
+    missingRecommendedFallbacks.length > 0
+      ? toUniqueStrings([...filteredExistingFallbacks, ...missingRecommendedFallbacks])
+      : filteredExistingFallbacks;
 
   const desiredFallbacks =
     // When we just changed primary (or no usable fallbacks exist), rebuild fallbacks from active providers.
     // Otherwise preserve the operator's existing, valid fallback ordering.
     primaryModelUpdated || filteredExistingFallbacks.length === 0
       ? recommendedFallbacks
-      : missingRecommendedFallbacks.length > 0
-        ? [...filteredExistingFallbacks, ...missingRecommendedFallbacks]
-        : filteredExistingFallbacks;
+      : mergedFallbacks;
 
   if (!arraysEqual(existingFallbacks, desiredFallbacks)) {
     modelDefaults.fallbacks = desiredFallbacks;
