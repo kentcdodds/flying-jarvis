@@ -12,10 +12,10 @@ on:
         type: boolean
         default: false
       openclaw_version:
-        description: "OpenClaw version (latest, main, tag, or commit SHA)"
+        description: "OpenClaw version (main, tag, or commit SHA)"
         required: false
         type: string
-        default: "latest"
+        default: "main"
 
 jobs:
   deploy:
@@ -35,7 +35,6 @@ jobs:
 
           [ -n "${FLY_API_TOKEN}" ] || { echo "Missing required secret: FLY_API_TOKEN"; exit 1; }
           [ -n "${FLY_APP_NAME}" ] || { echo "Missing required secret: FLY_APP_NAME"; exit 1; }
-          [ -n "${FLY_REGION}" ] || { echo "Missing required secret: FLY_REGION"; exit 1; }
           [ -n "${OPENCLAW_GATEWAY_TOKEN}" ] || { echo "Missing required secret: OPENCLAW_GATEWAY_TOKEN"; exit 1; }
           [ -n "${CLOUDFLARE_TUNNEL_TOKEN}" ] || { echo "Missing required secret: CLOUDFLARE_TUNNEL_TOKEN"; exit 1; }
 
@@ -54,7 +53,7 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
-          FLY_REGION: ${{ secrets.FLY_REGION }}
+          FLY_REGION: ${{ secrets.FLY_REGION || 'iad' }}
           OPENCLAW_GATEWAY_TOKEN: ${{ secrets.OPENCLAW_GATEWAY_TOKEN }}
           CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -62,22 +61,10 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           FLY_VOLUME_SIZE_GB: ${{ secrets.FLY_VOLUME_SIZE_GB || '1' }}
 
-      - name: Render deploy fly.toml from secrets
-        run: |
-          cp fly.toml fly.generated.toml
-          sed -i "s/^app = .*/app = \"${FLY_APP_NAME}\"/" fly.generated.toml
-          sed -i "s/^primary_region = .*/primary_region = \"${FLY_REGION}\"/" fly.generated.toml
-          sed -i "s/^  source = .*/  source = \"${FLY_VOLUME_NAME}\"/" fly.generated.toml
-          echo "Rendered deploy config:"
-          grep -n -E "^(app|primary_region) = |^  source = " fly.generated.toml
-        env:
-          FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
-          FLY_REGION: ${{ secrets.FLY_REGION }}
-          FLY_VOLUME_NAME: ${{ secrets.FLY_VOLUME_NAME || 'openclaw_data' }}
-
       - name: Ensure Fly app and volume exist
         run: |
           set -euo pipefail
+          FLY_VOLUME_NAME="openclaw_data"
 
           if flyctl apps show "${FLY_APP_NAME}" >/dev/null 2>&1; then
             echo "Fly app exists: ${FLY_APP_NAME}"
@@ -100,9 +87,8 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
-          FLY_REGION: ${{ secrets.FLY_REGION }}
+          FLY_REGION: ${{ secrets.FLY_REGION || 'iad' }}
           FLY_ORG: ${{ secrets.FLY_ORG }}
-          FLY_VOLUME_NAME: ${{ secrets.FLY_VOLUME_NAME || 'openclaw_data' }}
           FLY_VOLUME_SIZE_GB: ${{ secrets.FLY_VOLUME_SIZE_GB || '1' }}
 
       - name: Set Fly.io secrets from GitHub secrets
@@ -140,11 +126,11 @@ jobs:
           RESET_CONFIG: ${{ inputs.reset_config || 'false' }}
 
       - name: Deploy
-        run: flyctl deploy --remote-only --config fly.generated.toml --app "${FLY_APP_NAME}" --build-arg OPENCLAW_VERSION="${OPENCLAW_VERSION}"
+        run: flyctl deploy --remote-only --config fly.toml --app "${FLY_APP_NAME}" --build-arg OPENCLAW_VERSION="${OPENCLAW_VERSION}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
-          OPENCLAW_VERSION: ${{ inputs.openclaw_version || 'latest' }}
+          OPENCLAW_VERSION: ${{ inputs.openclaw_version || 'main' }}
 
       - name: Clear one-shot reset flag
         if: ${{ always() && inputs.reset_config == true }}

@@ -7,12 +7,10 @@ This runbook is for deploying OpenClaw on Fly with Cloudflare Tunnel + Zero Trus
 If you want the shortest reliable setup:
 
 1. Set required GitHub Actions secrets (`FLY_*`, gateway token, tunnel token, and at least one provider key).
-2. If you want Discord, set both `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID`.
-3. Deploy with workflow inputs:
-   - `openclaw_version=main`
-   - `reset_config=true` (first deploy or when changing core auth/channel config)
-4. Open your Cloudflare hostname, then pair the browser/device once if prompted.
-5. Re-deploy later with `reset_config=false` for normal updates.
+2. Deploy with workflow input `reset_config=true` (first deploy or when changing core auth/channel config).
+3. Open your Cloudflare hostname, then pair the browser/device once if prompted.
+4. Re-deploy later with `reset_config=false` for normal updates.
+5. Configure optional channels (such as Discord) in Control UI after first login.
 
 ## 1) Prerequisites
 
@@ -33,12 +31,12 @@ Useful docs:
 Pick values for:
 
 - app name (`FLY_APP_NAME`)
-- region (`FLY_REGION`)
+- region (`FLY_REGION`, optional; defaults to `iad`)
 
 The workflow will create the app and volume automatically if missing.
 Defaults:
 
-- volume name: `openclaw_data` (override with `FLY_VOLUME_NAME`)
+- volume name: `openclaw_data` (fixed in this template)
 - volume size: `1` GB (override with `FLY_VOLUME_SIZE_GB`)
 - optional org selector: `FLY_ORG`
 
@@ -61,7 +59,6 @@ Required secrets:
 
 - `FLY_API_TOKEN`
 - `FLY_APP_NAME`
-- `FLY_REGION`
 - `OPENCLAW_GATEWAY_TOKEN`
 - at least one provider key:
   - `ANTHROPIC_API_KEY`
@@ -74,9 +71,11 @@ Optional:
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_GUILD_ID`
 - `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` (defaults to `false` each deploy unless explicitly set)
+- `FLY_REGION` (defaults to `iad`)
 - `FLY_ORG`
-- `FLY_VOLUME_NAME`
 - `FLY_VOLUME_SIZE_GB`
+
+`DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` are only passed through as runtime secrets. This template no longer auto-wires Discord bindings/channels in the default config.
 
 ### Secret value cookbook
 
@@ -86,17 +85,16 @@ Use these examples when you populate GitHub repository secrets:
 |---|---|---|---|---|
 | `FLY_API_TOKEN` | Yes | `fo1_...` | `flyctl auth login` then `flyctl auth token` | n/a |
 | `FLY_APP_NAME` | Yes | `my-openclaw` | Choose a unique app name you want on Fly | n/a |
-| `FLY_REGION` | Yes | `iad` | `fly platform regions` | n/a |
+| `FLY_REGION` | No | `iad` | `fly platform regions` | `iad` |
 | `OPENCLAW_GATEWAY_TOKEN` | Yes | `f0f57a7f...` (64 hex chars) | `openssl rand -hex 32` | n/a |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Yes | `eyJhIjoi...` | Cloudflare Zero Trust tunnel dashboard, or `cloudflared tunnel token <tunnel-name>` | n/a |
 | `ANTHROPIC_API_KEY` | One provider key required | `sk-ant-...` | Anthropic Console | Unset unless you add it |
 | `OPENAI_API_KEY` | One provider key required | `sk-proj-...` | OpenAI API keys page | Unset unless you add it |
 | `GOOGLE_API_KEY` | One provider key required | `AIza...` | Google AI Studio / Google Cloud credentials | Unset unless you add it |
-| `DISCORD_BOT_TOKEN` | No | `MTA...` | Discord Developer Portal → Bot token | Unset (Discord channel inactive) |
-| `DISCORD_GUILD_ID` | No | `123456789012345678` | Discord Developer Mode → copy server ID | Unset (no guild placeholder replacement) |
+| `DISCORD_BOT_TOKEN` | No | `MTA...` | Discord Developer Portal → Bot token | Unset |
+| `DISCORD_GUILD_ID` | No | `123456789012345678` | Discord Developer Mode → copy server ID | Unset |
 | `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` | No | `false` (recommended) or `true` | Set `true` only when you intentionally want token-only auth without pairing | `false` enforced by workflow when unset |
 | `FLY_ORG` | No | `personal` | `fly orgs list` | Unset (Fly default org context) |
-| `FLY_VOLUME_NAME` | No | `openclaw_data` | Optional override for volume name | `openclaw_data` |
 | `FLY_VOLUME_SIZE_GB` | No | `1` | Optional integer GB size (`>= 1`) | `1` |
 
 ## 5) Deploy
@@ -106,14 +104,13 @@ Deploy by pushing to `main`, or manually run the **Deploy to Fly.io** workflow.
 Manual workflow inputs:
 
 - `openclaw_version`:
-  - `latest` (default)
-  - `main`
+  - `main` (default)
   - specific tag or commit
 - `reset_config`:
   - set `true` to force a fresh `/data/openclaw.json` on startup
   - the workflow clears `RESET_CONFIG` after deploy so the reset remains one-shot
 
-Recommended for first setup: run once with `openclaw_version=main` and `reset_config=true`.
+Recommended for first setup: run once with `reset_config=true`.
 
 ## 6) Validate after deploy
 
@@ -201,7 +198,7 @@ flyctl ssh console -a <your-fly-app-name> -C 'sh -lc "npx openclaw status --deep
 
 - Confirm `DISCORD_BOT_TOKEN` is set in Fly secrets.
 - Confirm `DISCORD_GUILD_ID` matches the target Discord server.
-- This template auto-enables `plugins.entries.discord.enabled=true` whenever `DISCORD_BOT_TOKEN` is present at startup.
+- Confirm Discord plugin/channel bindings were configured in Control UI or `/data/openclaw.json`.
 - Verify gateway reachability:
 
 ```bash
