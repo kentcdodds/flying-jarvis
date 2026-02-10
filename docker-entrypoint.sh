@@ -291,7 +291,11 @@ PERSISTENT_WORKSPACE="${OPENCLAW_WORKSPACE_DIR:-$CONFIG_DIR/workspace}"
 # First run: seed persistent workspace with default files.
 if [ ! -d "$PERSISTENT_WORKSPACE" ]; then
   mkdir -p "$PERSISTENT_WORKSPACE"
-  cp -rn "$WORKSPACE_SEED_DIR"/* "$PERSISTENT_WORKSPACE"/ 2>/dev/null || true
+  if [ -d "$WORKSPACE_SEED_DIR" ]; then
+    cp -rn "$WORKSPACE_SEED_DIR"/. "$PERSISTENT_WORKSPACE"/
+  else
+    echo "Workspace seed directory not found at $WORKSPACE_SEED_DIR; skipping seed copy."
+  fi
 fi
 
 # Ensure required runtime directories exist with restrictive permissions.
