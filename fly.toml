@@ -1,8 +1,6 @@
 # These defaults are overridden in GitHub Actions using secrets:
 # - FLY_APP_NAME
-# - FLY_REGION
 app = "openclaw-fly-template"
-primary_region = "iad"
 
 [build]
   dockerfile = "Dockerfile"
@@ -11,7 +9,6 @@ primary_region = "iad"
   NODE_ENV = "production"
   OPENCLAW_PREFER_PNPM = "1"
   OPENCLAW_STATE_DIR = "/data"
-  OPENCLAW_GATEWAY_PORT = "3000"
   NODE_OPTIONS = "--max-old-space-size=1536"
 
 [processes]
@@ -27,6 +24,7 @@ primary_region = "iad"
 #
 # Volume must be created before first deployment:
 # flyctl volumes create openclaw_data --region <region> --size 1
+# Volume source is fixed at openclaw_data in this simplified template.
 [mounts]
   source = "openclaw_data"
   destination = "/data"

@@ -12,10 +12,10 @@ on:
         type: boolean
         default: false
       openclaw_version:
-        description: "OpenClaw version (latest, main, tag, or commit SHA)"
+        description: "OpenClaw version (main, tag, or commit SHA)"
         required: false
         type: string
-        default: "latest"
+        default: "main"
 
 jobs:
   deploy:
@@ -35,7 +35,6 @@ jobs:
 
           [ -n "${FLY_API_TOKEN}" ] || { echo "Missing required secret: FLY_API_TOKEN"; exit 1; }
           [ -n "${FLY_APP_NAME}" ] || { echo "Missing required secret: FLY_APP_NAME"; exit 1; }
-          [ -n "${FLY_REGION}" ] || { echo "Missing required secret: FLY_REGION"; exit 1; }
           [ -n "${OPENCLAW_GATEWAY_TOKEN}" ] || { echo "Missing required secret: OPENCLAW_GATEWAY_TOKEN"; exit 1; }
           [ -n "${CLOUDFLARE_TUNNEL_TOKEN}" ] || { echo "Missing required secret: CLOUDFLARE_TUNNEL_TOKEN"; exit 1; }
 
@@ -54,7 +53,7 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
-          FLY_REGION: ${{ secrets.FLY_REGION }}
+          FLY_REGION: ${{ secrets.FLY_REGION || 'iad' }}
           OPENCLAW_GATEWAY_TOKEN: ${{ secrets.OPENCLAW_GATEWAY_TOKEN }}
           CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -62,22 +61,10 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           FLY_VOLUME_SIZE_GB: ${{ secrets.FLY_VOLUME_SIZE_GB || '1' }}
 
-      - name: Render deploy fly.toml from secrets
-        run: |
-          cp fly.toml fly.generated.toml
-          sed -i "s/^app = .*/app = \"${FLY_APP_NAME}\"/" fly.generated.toml
-          sed -i "s/^primary_region = .*/primary_region = \"${FLY_REGION}\"/" fly.generated.toml
-          sed -i "s/^  source = .*/  source = \"${FLY_VOLUME_NAME}\"/" fly.generated.toml
-          echo "Rendered deploy config:"
-          grep -n -E "^(app|primary_region) = |^  source = " fly.generated.toml
-        env:
-          FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
-          FLY_REGION: ${{ secrets.FLY_REGION }}
-          FLY_VOLUME_NAME: ${{ secrets.FLY_VOLUME_NAME || 'openclaw_data' }}
-
       - name: Ensure Fly app and volume exist
         run: |
           set -euo pipefail
+          FLY_VOLUME_NAME="openclaw_data"
 
           if flyctl apps show "${FLY_APP_NAME}" >/dev/null 2>&1; then
             echo "Fly app exists: ${FLY_APP_NAME}"
@@ -100,10 +87,36 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
-          FLY_REGION: ${{ secrets.FLY_REGION }}
+          FLY_REGION: ${{ secrets.FLY_REGION || 'iad' }}
           FLY_ORG: ${{ secrets.FLY_ORG }}
-          FLY_VOLUME_NAME: ${{ secrets.FLY_VOLUME_NAME || 'openclaw_data' }}
           FLY_VOLUME_SIZE_GB: ${{ secrets.FLY_VOLUME_SIZE_GB || '1' }}
+
+      - name: Log setup warnings and opportunities
+        run: |
+          set -euo pipefail
+
+          if [ -n "${DISCORD_BOT_TOKEN}" ] && [ -z "${DISCORD_GUILD_ID}" ]; then
+            echo "::warning title=Discord auto-wiring skipped::DISCORD_BOT_TOKEN is set but DISCORD_GUILD_ID is missing. Set both values to auto-configure Discord channels."
+          fi
+
+          if [ -z "${DISCORD_BOT_TOKEN}" ] && [ -n "${DISCORD_GUILD_ID}" ]; then
+            echo "::warning title=Discord auto-wiring skipped::DISCORD_GUILD_ID is set but DISCORD_BOT_TOKEN is missing. Set both values to auto-configure Discord channels."
+          fi
+
+          if [ -n "${DISCORD_BOT_TOKEN}" ] && [ -n "${DISCORD_GUILD_ID}" ] && [ -z "${DISCORD_CHANNEL_ID}" ]; then
+            echo "::notice title=Discord channel default::DISCORD_CHANNEL_ID is not set. Startup seeds 'general' while allowing all guild channels by default."
+          fi
+
+          if [ -n "${GOOGLE_API_KEY}" ] && [ -z "${OPENAI_API_KEY}" ] && [ -z "${ANTHROPIC_API_KEY}" ]; then
+            echo "::notice title=Model auto-selection::Only GOOGLE_API_KEY is set. Startup will choose google/gemini-3-pro-preview as the primary model."
+          fi
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Set Fly.io secrets from GitHub secrets
         run: |
@@ -119,6 +132,7 @@ jobs:
           [ -n "${GOOGLE_API_KEY}" ] && SECRETS+=("GOOGLE_API_KEY=${GOOGLE_API_KEY}")
           [ -n "${DISCORD_BOT_TOKEN}" ] && SECRETS+=("DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}")
           [ -n "${DISCORD_GUILD_ID}" ] && SECRETS+=("DISCORD_GUILD_ID=${DISCORD_GUILD_ID}")
+          [ -n "${DISCORD_CHANNEL_ID}" ] && SECRETS+=("DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}")
           flyctl secrets set "${SECRETS[@]}" --app "${FLY_APP_NAME}" --stage
 
           if [ "${RESET_CONFIG}" = "true" ]; then
@@ -136,15 +150,16 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
           OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH_EFFECTIVE: ${{ secrets.OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH || 'false' }}
           RESET_CONFIG: ${{ inputs.reset_config || 'false' }}
 
       - name: Deploy
-        run: flyctl deploy --remote-only --config fly.generated.toml --app "${FLY_APP_NAME}" --build-arg OPENCLAW_VERSION="${OPENCLAW_VERSION}"
+        run: flyctl deploy --remote-only --config fly.toml --app "${FLY_APP_NAME}" --build-arg OPENCLAW_VERSION="${OPENCLAW_VERSION}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
-          OPENCLAW_VERSION: ${{ inputs.openclaw_version || 'latest' }}
+          OPENCLAW_VERSION: ${{ inputs.openclaw_version || 'main' }}
 
       - name: Clear one-shot reset flag
         if: ${{ always() && inputs.reset_config == true }}
