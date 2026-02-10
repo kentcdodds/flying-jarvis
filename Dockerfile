@@ -8,7 +8,7 @@ RUN corepack enable
 
 # Install git to clone the repository and cloudflared for tunnel access
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git ca-certificates curl gnupg lsof && \
+    apt-get install -y --no-install-recommends git ca-certificates curl gnupg lsof ripgrep && \
     curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null && \
     echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared bookworm main" \
       | tee /etc/apt/sources.list.d/cloudflared.list >/dev/null && \
