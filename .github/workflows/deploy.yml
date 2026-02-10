@@ -91,6 +91,33 @@ jobs:
           FLY_ORG: ${{ secrets.FLY_ORG }}
           FLY_VOLUME_SIZE_GB: ${{ secrets.FLY_VOLUME_SIZE_GB || '1' }}
 
+      - name: Log setup warnings and opportunities
+        run: |
+          set -euo pipefail
+
+          if [ -n "${DISCORD_BOT_TOKEN}" ] && [ -z "${DISCORD_GUILD_ID}" ]; then
+            echo "::warning title=Discord auto-wiring skipped::DISCORD_BOT_TOKEN is set but DISCORD_GUILD_ID is missing. Set both values to auto-configure Discord channels."
+          fi
+
+          if [ -z "${DISCORD_BOT_TOKEN}" ] && [ -n "${DISCORD_GUILD_ID}" ]; then
+            echo "::warning title=Discord auto-wiring skipped::DISCORD_GUILD_ID is set but DISCORD_BOT_TOKEN is missing. Set both values to auto-configure Discord channels."
+          fi
+
+          if [ -n "${DISCORD_BOT_TOKEN}" ] && [ -n "${DISCORD_GUILD_ID}" ] && [ -z "${DISCORD_CHANNEL_ID}" ]; then
+            echo "::notice title=Discord channel default::DISCORD_CHANNEL_ID is not set. Startup seeds 'general' while allowing all guild channels by default."
+          fi
+
+          if [ -n "${GOOGLE_API_KEY}" ] && [ -z "${OPENAI_API_KEY}" ] && [ -z "${ANTHROPIC_API_KEY}" ]; then
+            echo "::notice title=Model auto-selection::Only GOOGLE_API_KEY is set. Startup will choose google/gemini-3-pro-preview as the primary model."
+          fi
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
       - name: Set Fly.io secrets from GitHub secrets
         run: |
           set -euo pipefail
@@ -105,6 +132,7 @@ jobs:
           [ -n "${GOOGLE_API_KEY}" ] && SECRETS+=("GOOGLE_API_KEY=${GOOGLE_API_KEY}")
           [ -n "${DISCORD_BOT_TOKEN}" ] && SECRETS+=("DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}")
           [ -n "${DISCORD_GUILD_ID}" ] && SECRETS+=("DISCORD_GUILD_ID=${DISCORD_GUILD_ID}")
+          [ -n "${DISCORD_CHANNEL_ID}" ] && SECRETS+=("DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}")
           flyctl secrets set "${SECRETS[@]}" --app "${FLY_APP_NAME}" --stage
 
           if [ "${RESET_CONFIG}" = "true" ]; then
@@ -122,6 +150,7 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
           OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH_EFFECTIVE: ${{ secrets.OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH || 'false' }}
           RESET_CONFIG: ${{ inputs.reset_config || 'false' }}
 

@@ -10,7 +10,7 @@ If you want the shortest reliable setup:
 2. Deploy with workflow input `reset_config=true` (first deploy or when changing core auth/channel config).
 3. Open your Cloudflare hostname, then pair the browser/device once if prompted.
 4. Re-deploy later with `reset_config=false` for normal updates.
-5. For Discord, set both `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` so startup auto-configures a working default channel binding.
+5. For Discord, set `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` (optionally `DISCORD_CHANNEL_ID`) so startup auto-configures Discord with open guild-channel policy and a default channel entry.
 
 ## 1) Prerequisites
 
@@ -70,12 +70,17 @@ Optional:
 
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_GUILD_ID`
+- `DISCORD_CHANNEL_ID` (defaults to `general` when Discord is auto-configured)
 - `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` (defaults to `false` each deploy unless explicitly set)
 - `FLY_REGION` (defaults to `iad`)
 - `FLY_ORG`
 - `FLY_VOLUME_SIZE_GB`
 
-When both `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` are set, startup auto-configures Discord plugin enablement, channel binding, and a default guild/channel entry in config.
+Startup auto-wiring behaviors:
+
+- Provider keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`) create matching `auth.profiles.*:default` entries when missing.
+- Startup selects `agents.defaults.model.primary` from available providers (priority: OpenAI, then Anthropic, then Google) and keeps fallbacks aligned with available provider keys.
+- When both `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` are set, startup enables Discord plugin/binding, sets `channels.discord.groupPolicy="open"`, enables wildcard channel access, and seeds a default channel key (`DISCORD_CHANNEL_ID` or `general`).
 
 ### Secret value cookbook
 
@@ -93,6 +98,7 @@ Use these examples when you populate GitHub repository secrets:
 | `GOOGLE_API_KEY` | One provider key required | `AIza...` | Google AI Studio / Google Cloud credentials | Unset unless you add it |
 | `DISCORD_BOT_TOKEN` | No | `MTA...` | Discord Developer Portal → Bot token | Unset |
 | `DISCORD_GUILD_ID` | No | `123456789012345678` | Discord Developer Mode → copy server ID | Unset |
+| `DISCORD_CHANNEL_ID` | No | `123456789012345678` | Discord Developer Mode → copy channel ID | `general` |
 | `OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH` | No | `false` (recommended) or `true` | Set `true` only when you intentionally want token-only auth without pairing | `false` enforced by workflow when unset |
 | `FLY_ORG` | No | `personal` | `fly orgs list` | Unset (Fly default org context) |
 | `FLY_VOLUME_SIZE_GB` | No | `1` | Optional integer GB size (`>= 1`) | `1` |
@@ -198,6 +204,7 @@ flyctl ssh console -a <your-fly-app-name> -C 'sh -lc "npx openclaw status --deep
 
 - Confirm `DISCORD_BOT_TOKEN` is set in Fly secrets.
 - Confirm `DISCORD_GUILD_ID` matches the target Discord server.
+- Optionally set `DISCORD_CHANNEL_ID` to seed your preferred default channel key (otherwise `general`).
 - Confirm `/data/openclaw.json` includes the auto-configured Discord plugin/channel entries after startup.
 - Verify gateway reachability:
 

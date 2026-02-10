@@ -31,6 +31,68 @@ function ensureArray(target, key) {
   return target[key];
 }
 
+function providerFromModel(model) {
+  const normalizedModel = trimValue(model);
+  if (!normalizedModel.includes("/")) {
+    return "";
+  }
+  return normalizedModel.slice(0, normalizedModel.indexOf("/"));
+}
+
+function toUniqueStrings(values) {
+  const unique = [];
+  const seen = new Set();
+  for (const value of values) {
+    if (typeof value !== "string") {
+      continue;
+    }
+    const normalized = trimValue(value);
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    unique.push(normalized);
+  }
+  return unique;
+}
+
+function arraysEqual(left, right) {
+  if (left.length !== right.length) {
+    return false;
+  }
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+const providerDefaults = [
+  {
+    provider: "openai",
+    envVar: "OPENAI_API_KEY",
+    profileKey: "openai:default",
+    primaryModel: "openai/gpt-5.2",
+    fallbackModels: ["openai/gpt-4o"],
+  },
+  {
+    provider: "anthropic",
+    envVar: "ANTHROPIC_API_KEY",
+    profileKey: "anthropic:default",
+    primaryModel: "anthropic/claude-sonnet-4-5",
+    fallbackModels: [],
+  },
+  {
+    provider: "google",
+    envVar: "GOOGLE_API_KEY",
+    profileKey: "google:default",
+    primaryModel: "google/gemini-3-pro-preview",
+    fallbackModels: [],
+  },
+];
+const providerDefaultsByName = new Map(providerDefaults.map((entry) => [entry.provider, entry]));
+
 const configPath = trimValue(process.env.OPENCLAW_CONFIG_FILE);
 if (!configPath) {
   console.error("OPENCLAW_CONFIG_FILE is required.");
@@ -67,8 +129,88 @@ if (Object.prototype.hasOwnProperty.call(process.env, "OPENCLAW_CONTROL_UI_ALLOW
   }
 }
 
+const auth = ensureObject(config, "auth");
+const authProfiles = ensureObject(auth, "profiles");
+const availableProviders = [];
+for (const providerConfig of providerDefaults) {
+  if (!trimValue(process.env[providerConfig.envVar])) {
+    continue;
+  }
+  availableProviders.push(providerConfig.provider);
+  const existingProfile = authProfiles[providerConfig.profileKey];
+  if (
+    !existingProfile ||
+    typeof existingProfile !== "object" ||
+    Array.isArray(existingProfile) ||
+    existingProfile.mode !== "token" ||
+    existingProfile.provider !== providerConfig.provider
+  ) {
+    authProfiles[providerConfig.profileKey] = {
+      mode: "token",
+      provider: providerConfig.provider,
+    };
+    console.log(`Set auth.profiles.${providerConfig.profileKey} from ${providerConfig.envVar}`);
+    changed = true;
+  }
+}
+
+if (availableProviders.length > 0) {
+  const modelDefaults = ensureObject(config.agents.defaults, "model");
+  if (typeof modelDefaults.primary !== "string") {
+    modelDefaults.primary = "";
+  }
+  const currentPrimary = trimValue(modelDefaults.primary);
+  const currentPrimaryProvider = providerFromModel(currentPrimary);
+
+  let primaryModelUpdated = false;
+  if (!currentPrimary || !availableProviders.includes(currentPrimaryProvider)) {
+    const preferredProvider = availableProviders[0];
+    const preferredProviderDefaults = providerDefaultsByName.get(preferredProvider);
+    if (preferredProviderDefaults && modelDefaults.primary !== preferredProviderDefaults.primaryModel) {
+      modelDefaults.primary = preferredProviderDefaults.primaryModel;
+      primaryModelUpdated = true;
+      changed = true;
+      console.log(`Set agents.defaults.model.primary=${preferredProviderDefaults.primaryModel}`);
+    }
+  }
+
+  const activePrimaryProvider = providerFromModel(modelDefaults.primary);
+  const recommendedFallbacks = toUniqueStrings(
+    availableProviders
+      .filter((provider) => provider !== activePrimaryProvider)
+      .flatMap((provider) => {
+        const providerConfig = providerDefaultsByName.get(provider);
+        if (!providerConfig) {
+          return [];
+        }
+        return [providerConfig.primaryModel, ...providerConfig.fallbackModels];
+      })
+      .filter((model) => providerFromModel(model) && providerFromModel(model) !== activePrimaryProvider),
+  );
+
+  const existingFallbacks = Array.isArray(modelDefaults.fallbacks) ? modelDefaults.fallbacks : [];
+  const filteredExistingFallbacks = toUniqueStrings(
+    existingFallbacks.filter((model) => {
+      const provider = providerFromModel(model);
+      return provider && availableProviders.includes(provider) && model !== modelDefaults.primary;
+    }),
+  );
+
+  const desiredFallbacks =
+    primaryModelUpdated || filteredExistingFallbacks.length === 0
+      ? recommendedFallbacks
+      : filteredExistingFallbacks;
+
+  if (!arraysEqual(existingFallbacks, desiredFallbacks)) {
+    modelDefaults.fallbacks = desiredFallbacks;
+    changed = true;
+    console.log(`Set agents.defaults.model.fallbacks=${JSON.stringify(desiredFallbacks)}`);
+  }
+}
+
 const discordBotToken = trimValue(process.env.DISCORD_BOT_TOKEN);
 const discordGuildId = trimValue(process.env.DISCORD_GUILD_ID);
+const discordChannelId = trimValue(process.env.DISCORD_CHANNEL_ID);
 if (discordBotToken && discordGuildId) {
   const plugins = ensureObject(config, "plugins");
   const pluginEntries = ensureObject(plugins, "entries");
@@ -107,24 +249,46 @@ if (discordBotToken && discordGuildId) {
     console.log("Set channels.discord.enabled=true");
     changed = true;
   }
-  if (discordChannel.groupPolicy !== "allowlist") {
-    discordChannel.groupPolicy = "allowlist";
-    console.log("Set channels.discord.groupPolicy=allowlist");
+  if (discordChannel.groupPolicy !== "open") {
+    discordChannel.groupPolicy = "open";
+    console.log("Set channels.discord.groupPolicy=open");
     changed = true;
   }
 
   const guilds = ensureObject(discordChannel, "guilds");
   const guildConfig = ensureObject(guilds, discordGuildId);
-  const guildChannels = ensureObject(guildConfig, "channels");
-  const generalChannel = ensureObject(guildChannels, "general");
-  if (generalChannel.allow !== true) {
-    generalChannel.allow = true;
-    console.log(`Set channels.discord.guilds.${discordGuildId}.channels.general.allow=true`);
-    changed = true;
-  }
   if (guildConfig.requireMention !== false) {
     guildConfig.requireMention = false;
     console.log(`Set channels.discord.guilds.${discordGuildId}.requireMention=false`);
+    changed = true;
+  }
+
+  const guildChannels = ensureObject(guildConfig, "channels");
+  const defaultChannelKey = discordChannelId || "general";
+
+  const wildcardChannel = ensureObject(guildChannels, "*");
+  if (wildcardChannel.allow !== true) {
+    wildcardChannel.allow = true;
+    console.log(`Set channels.discord.guilds.${discordGuildId}.channels.*.allow=true`);
+    changed = true;
+  }
+  if (wildcardChannel.requireMention !== false) {
+    wildcardChannel.requireMention = false;
+    console.log(`Set channels.discord.guilds.${discordGuildId}.channels.*.requireMention=false`);
+    changed = true;
+  }
+
+  const defaultChannel = ensureObject(guildChannels, defaultChannelKey);
+  if (defaultChannel.allow !== true) {
+    defaultChannel.allow = true;
+    console.log(`Set channels.discord.guilds.${discordGuildId}.channels.${defaultChannelKey}.allow=true`);
+    changed = true;
+  }
+  if (defaultChannel.requireMention !== false) {
+    defaultChannel.requireMention = false;
+    console.log(
+      `Set channels.discord.guilds.${discordGuildId}.channels.${defaultChannelKey}.requireMention=false`,
+    );
     changed = true;
   }
 } else if (discordBotToken || discordGuildId) {
