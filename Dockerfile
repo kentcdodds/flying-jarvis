@@ -44,10 +44,10 @@ RUN if [ -n "$OPENCLAW_DOCKER_APT_PACKAGES" ]; then \
       rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*; \
     fi
 
-RUN pnpm install --frozen-lockfile
+RUN bun install --no-save
 
-RUN OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build
-# Force pnpm for UI build (Bun may fail on ARM/Synology architectures)
+RUN OPENCLAW_A2UI_SKIP_MISSING=1 bun run build
+# Keep pnpm for ui:* scripts per OpenClaw docs and ARM/Synology compatibility.
 ENV OPENCLAW_PREFER_PNPM=1
 RUN pnpm ui:build
 
