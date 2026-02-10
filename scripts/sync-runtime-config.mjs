@@ -2,6 +2,14 @@
 
 import fs from "node:fs";
 
+/**
+ * Synchronize runtime env decisions into config on startup.
+ *
+ * Design goals:
+ * - idempotent: re-running should converge to the same config state
+ * - additive: only set/normalize fields owned by this template
+ * - low surprise: avoid overriding explicit user choices unless they no longer fit available providers
+ */
 const truthyValues = new Set(["1", "true", "yes", "on"]);
 
 function trimValue(value) {
@@ -68,6 +76,7 @@ function arraysEqual(left, right) {
   return true;
 }
 
+// Order matters: first available provider becomes default primary model when current primary is missing/unusable.
 const providerDefaults = [
   {
     provider: "openai",
@@ -163,6 +172,8 @@ if (availableProviders.length > 0) {
   const currentPrimaryProvider = providerFromModel(currentPrimary);
 
   let primaryModelUpdated = false;
+  // Preserve explicit primary choices when still supported by available provider keys.
+  // Only reset when primary is absent or points to a provider with no key in this deployment.
   if (!currentPrimary || !availableProviders.includes(currentPrimaryProvider)) {
     const preferredProvider = availableProviders[0];
     const preferredProviderDefaults = providerDefaultsByName.get(preferredProvider);
@@ -197,6 +208,8 @@ if (availableProviders.length > 0) {
   );
 
   const desiredFallbacks =
+    // When we just changed primary (or no usable fallbacks exist), rebuild fallbacks from active providers.
+    // Otherwise preserve the operator's existing, valid fallback ordering.
     primaryModelUpdated || filteredExistingFallbacks.length === 0
       ? recommendedFallbacks
       : filteredExistingFallbacks;
@@ -212,6 +225,8 @@ const discordBotToken = trimValue(process.env.DISCORD_BOT_TOKEN);
 const discordGuildId = trimValue(process.env.DISCORD_GUILD_ID);
 const discordChannelId = trimValue(process.env.DISCORD_CHANNEL_ID);
 if (discordBotToken && discordGuildId) {
+  // Zero-touch Discord bootstrapping:
+  // token + guild id are enough for a working default integration.
   const plugins = ensureObject(config, "plugins");
   const pluginEntries = ensureObject(plugins, "entries");
   const discordPlugin = ensureObject(pluginEntries, "discord");
@@ -250,6 +265,7 @@ if (discordBotToken && discordGuildId) {
     changed = true;
   }
   if (discordChannel.groupPolicy !== "open") {
+    // Requested template default: permit chat in any guild channel out of the box.
     discordChannel.groupPolicy = "open";
     console.log("Set channels.discord.groupPolicy=open");
     changed = true;
@@ -268,6 +284,7 @@ if (discordBotToken && discordGuildId) {
 
   const wildcardChannel = ensureObject(guildChannels, "*");
   if (wildcardChannel.allow !== true) {
+    // Wildcard entry keeps "any channel" behavior even when explicit channels are present.
     wildcardChannel.allow = true;
     console.log(`Set channels.discord.guilds.${discordGuildId}.channels.*.allow=true`);
     changed = true;
@@ -280,6 +297,7 @@ if (discordBotToken && discordGuildId) {
 
   const defaultChannel = ensureObject(guildChannels, defaultChannelKey);
   if (defaultChannel.allow !== true) {
+    // Seed one explicit channel key for clarity/discoverability in config and UI.
     defaultChannel.allow = true;
     console.log(`Set channels.discord.guilds.${discordGuildId}.channels.${defaultChannelKey}.allow=true`);
     changed = true;
@@ -292,6 +310,7 @@ if (discordBotToken && discordGuildId) {
     changed = true;
   }
 } else if (discordBotToken || discordGuildId) {
+  // Keep this non-fatal so deployment succeeds while workflow warnings call out the missing pair.
   console.log("Skipping Discord auto-wiring: set both DISCORD_BOT_TOKEN and DISCORD_GUILD_ID.");
 }
 
