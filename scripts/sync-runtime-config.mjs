@@ -89,8 +89,8 @@ const providerDefaults = [
     provider: "anthropic",
     envVar: "ANTHROPIC_API_KEY",
     profileKey: "anthropic:default",
-    primaryModel: "anthropic/claude-sonnet-4-5",
-    fallbackModels: [],
+    primaryModel: "anthropic/claude-opus-4-5",
+    fallbackModels: ["anthropic/claude-sonnet-4-5"],
   },
   {
     provider: "google",
