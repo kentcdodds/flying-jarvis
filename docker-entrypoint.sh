@@ -209,6 +209,57 @@ if (config.plugins.entries.discord.enabled !== shouldEnable) {
 NODE
 }
 
+maybe_sync_workspace_path() {
+  local desired_workspace
+  desired_workspace="${OPENCLAW_WORKSPACE_DIR:-$CONFIG_DIR/workspace}"
+
+  if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Config file not found at $CONFIG_FILE; skipping workspace path sync."
+    return
+  fi
+
+  CONFIG_FILE="$CONFIG_FILE" OPENCLAW_WORKSPACE_PATH="$desired_workspace" node - <<'NODE'
+const fs = require("fs");
+
+const configPath = process.env.CONFIG_FILE;
+const desiredWorkspace = process.env.OPENCLAW_WORKSPACE_PATH;
+if (!configPath || !desiredWorkspace) {
+  console.error("Missing CONFIG_FILE or OPENCLAW_WORKSPACE_PATH; skipping workspace path sync.");
+  process.exit(0);
+}
+if (!fs.existsSync(configPath)) {
+  console.error(`Config file not found at ${configPath}; skipping workspace path sync.`);
+  process.exit(0);
+}
+
+let raw;
+try {
+  raw = fs.readFileSync(configPath, "utf8");
+} catch (err) {
+  console.error(`Failed to read config at ${configPath}: ${err}`);
+  process.exit(1);
+}
+
+let config;
+try {
+  config = JSON.parse(raw);
+} catch (err) {
+  console.error(`Failed to parse config JSON at ${configPath}: ${err}`);
+  process.exit(1);
+}
+
+config.agents = config.agents ?? {};
+config.agents.defaults = config.agents.defaults ?? {};
+if (config.agents.defaults.workspace !== desiredWorkspace) {
+  config.agents.defaults.workspace = desiredWorkspace;
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+  console.log(`Set agents.defaults.workspace=${desiredWorkspace} in config.`);
+} else {
+  console.log(`agents.defaults.workspace already ${desiredWorkspace}; leaving config as-is.`);
+}
+NODE
+}
+
 # Start Cloudflare Tunnel if configured
 if command -v cloudflared >/dev/null 2>&1; then
   cloudflare_token_raw="${CLOUDFLARE_TUNNEL_TOKEN:-}"
@@ -233,20 +284,15 @@ SESSIONS_DIR="$CONFIG_DIR/agents/main/sessions"
 mkdir -p "$CONFIG_DIR"
 chmod 700 "$CONFIG_DIR" || true
 
-# Persist agent workspace in the same volume that stores config/session state.
-WORKSPACE_DIR="/root/.openclaw/workspace"
-PERSISTENT_WORKSPACE="$CONFIG_DIR/workspace"
+# Persist agent workspace files in the same volume that stores config/session state.
+WORKSPACE_SEED_DIR="/root/.openclaw/workspace"
+PERSISTENT_WORKSPACE="${OPENCLAW_WORKSPACE_DIR:-$CONFIG_DIR/workspace}"
 
 # First run: seed persistent workspace with default files.
 if [ ! -d "$PERSISTENT_WORKSPACE" ]; then
   mkdir -p "$PERSISTENT_WORKSPACE"
-  cp -rn "$WORKSPACE_DIR"/* "$PERSISTENT_WORKSPACE"/ 2>/dev/null || true
+  cp -rn "$WORKSPACE_SEED_DIR"/* "$PERSISTENT_WORKSPACE"/ 2>/dev/null || true
 fi
-
-# Always point runtime workspace to persistent storage.
-mkdir -p "$(dirname "$WORKSPACE_DIR")"
-rm -rf "$WORKSPACE_DIR"
-ln -sf "$PERSISTENT_WORKSPACE" "$WORKSPACE_DIR"
 
 # Ensure required runtime directories exist with restrictive permissions.
 mkdir -p "$CREDENTIALS_DIR" "$SESSIONS_DIR"
@@ -285,6 +331,7 @@ fi
 maybe_sync_insecure_control_ui
 maybe_sync_gateway_port
 maybe_sync_discord_plugin_enabled
+maybe_sync_workspace_path
 
 # Log config path on startup (without dumping contents)
 if [ -f "$CONFIG_FILE" ]; then
