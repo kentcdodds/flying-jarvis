@@ -293,7 +293,7 @@ if [ ! -d "$PERSISTENT_WORKSPACE" ]; then
   mkdir -p "$PERSISTENT_WORKSPACE"
   if [ -d "$WORKSPACE_SEED_DIR" ]; then
     # Seed copy is best-effort; startup should continue even if some files fail to copy.
-    cp -r "$WORKSPACE_SEED_DIR"/. "$PERSISTENT_WORKSPACE"/ 2>/dev/null || true
+    cp -r "$WORKSPACE_SEED_DIR"/. "$PERSISTENT_WORKSPACE"/ || true
   else
     echo "Workspace seed directory not found at $WORKSPACE_SEED_DIR; skipping seed copy."
   fi
