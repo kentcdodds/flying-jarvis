@@ -320,14 +320,15 @@ record_non_running_active_daemons() {
 }
 
 terminate_active_daemons() {
-  local reason watchdog_pid exited_pid status daemon_index index pid progress_made fallback_status kill_deadline
+  local reason initial_signal watchdog_pid exited_pid status daemon_index index pid progress_made fallback_status kill_deadline
   reason="$1"
+  initial_signal="${2:-TERM}"
   if [ "$(active_daemon_count)" -eq 0 ]; then
     return
   fi
 
-  log "${reason}; requesting daemon shutdown"
-  forward_signal_to_active_daemons TERM
+  log "${reason}; requesting daemon shutdown with signal ${initial_signal}"
+  forward_signal_to_active_daemons "$initial_signal"
   kill_deadline=$((SECONDS + STARTUP_TERM_GRACE_SECONDS))
 
   (
@@ -388,7 +389,6 @@ handle_shutdown_signal() {
   shutdown_in_progress=1
   shutdown_requested=1
   shutdown_signal="$signal"
-  forward_signal_to_active_daemons "$signal"
 }
 
 write_active_daemons_file
@@ -438,7 +438,7 @@ for entry in "${sorted_entries[@]}"; do
   else
     status="$?"
     log "oneshot failed ${name} (status=${status})"
-    terminate_active_daemons "oneshot failure"
+    terminate_active_daemons "oneshot failure" TERM
     exit "$status"
   fi
 done
@@ -454,7 +454,7 @@ log "waiting for ${#daemon_pids[@]} daemon(s)"
 
 while [ "$(active_daemon_count)" -gt 0 ]; do
   if [ "$shutdown_requested" -eq 1 ]; then
-    terminate_active_daemons "shutdown requested via SIG${shutdown_signal}"
+    terminate_active_daemons "shutdown requested via SIG${shutdown_signal}" "${shutdown_signal}"
     break
   fi
 
@@ -466,7 +466,7 @@ while [ "$(active_daemon_count)" -gt 0 ]; do
   fi
 
   if [ "$shutdown_requested" -eq 1 ]; then
-    terminate_active_daemons "shutdown requested via SIG${shutdown_signal}"
+    terminate_active_daemons "shutdown requested via SIG${shutdown_signal}" "${shutdown_signal}"
     break
   fi
 
