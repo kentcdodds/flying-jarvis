@@ -11,6 +11,7 @@ STARTUP_LOG_BACKUPS="${STARTUP_LOG_BACKUPS:-5}"
 STARTUP_BOOTSTRAP_EXAMPLE="${STARTUP_BOOTSTRAP_EXAMPLE:-1}"
 STARTUP_BOOTSTRAP_OPENCLAW="${STARTUP_BOOTSTRAP_OPENCLAW:-1}"
 STARTUP_TERM_GRACE_SECONDS="${STARTUP_TERM_GRACE_SECONDS:-10}"
+OPENCLAW_APP_DIR="${OPENCLAW_APP_DIR:-/app}"
 RUNNER_PID="$$"
 
 prepend_path_if_dir() {
@@ -172,10 +173,12 @@ set -euo pipefail
 # Edit this file to customize startup behavior.
 if command -v openclaw >/dev/null 2>&1; then
   OPENCLAW_BIN="$(command -v openclaw)"
-elif [ -x "/app/node_modules/.bin/openclaw" ]; then
-  OPENCLAW_BIN="/app/node_modules/.bin/openclaw"
+elif [ -x "${OPENCLAW_APP_DIR:-/app}/node_modules/.bin/openclaw" ]; then
+  OPENCLAW_BIN="${OPENCLAW_APP_DIR:-/app}/node_modules/.bin/openclaw"
+elif [ -x "${OPENCLAW_APP_DIR:-/app}/openclaw.mjs" ]; then
+  OPENCLAW_BIN="${OPENCLAW_APP_DIR:-/app}/openclaw.mjs"
 else
-  echo "openclaw binary not found on PATH or at /app/node_modules/.bin/openclaw" >&2
+  echo "openclaw binary not found on PATH or at ${OPENCLAW_APP_DIR:-/app}/node_modules/.bin/openclaw or ${OPENCLAW_APP_DIR:-/app}/openclaw.mjs" >&2
   exit 127
 fi
 
@@ -248,7 +251,7 @@ write_bootstrap_openclaw_daemon() {
   log "wrote bootstrap daemon script: ${daemon_file}"
 }
 
-prepend_path_if_dir "/app/node_modules/.bin"
+prepend_path_if_dir "${OPENCLAW_APP_DIR}/node_modules/.bin"
 prepend_path_if_dir "/root/.bun/bin"
 export PATH
 
