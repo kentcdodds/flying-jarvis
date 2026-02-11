@@ -107,6 +107,12 @@ Use these examples when you populate GitHub repository secrets:
 
 Deploy by pushing to `main`, or manually run the **Deploy to Fly.io** workflow.
 
+If the deploy step fails, the workflow now prints grouped Fly diagnostics directly in the job log:
+
+- app status
+- machine list
+- app logs (`--no-tail`)
+
 Manual workflow inputs:
 
 - `openclaw_version`:

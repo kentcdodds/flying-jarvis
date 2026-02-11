@@ -154,12 +154,32 @@ jobs:
           OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH_EFFECTIVE: ${{ secrets.OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH || 'false' }}
           RESET_CONFIG: ${{ inputs.reset_config || 'false' }}
 
-      - name: Deploy
+      - id: fly_deploy
+        name: Deploy
         run: flyctl deploy --remote-only --config fly.toml --app "${FLY_APP_NAME}" --build-arg OPENCLAW_VERSION="${OPENCLAW_VERSION}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
           OPENCLAW_VERSION: ${{ inputs.openclaw_version || 'main' }}
+
+      - name: Dump Fly diagnostics on deploy failure
+        if: ${{ failure() && steps.fly_deploy.outcome == 'failure' }}
+        run: |
+          set +e
+          echo "::group::Fly app status"
+          flyctl status --app "${FLY_APP_NAME}"
+          echo "::endgroup::"
+
+          echo "::group::Fly machine list"
+          flyctl machines list --app "${FLY_APP_NAME}"
+          echo "::endgroup::"
+
+          echo "::group::Fly logs"
+          flyctl logs --app "${FLY_APP_NAME}" --no-tail
+          echo "::endgroup::"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
 
       - name: Clear one-shot reset flag
         if: ${{ always() && inputs.reset_config == true }}
