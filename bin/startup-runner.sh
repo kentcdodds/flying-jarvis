@@ -389,9 +389,9 @@ handle_shutdown_signal() {
   trap - TERM INT QUIT
   shutdown_requested=1
   shutdown_signal="$signal"
-  log "received SIG${signal}; forwarding signal to active daemons"
   forward_signal_to_active_daemons "$signal"
   terminate_active_daemons "shutdown requested via SIG${shutdown_signal}"
+  log "shutdown handling complete for SIG${signal}"
   exit 0
 }
 
