@@ -80,7 +80,13 @@ log_process_event() {
   entry="${5:-}"
   append_log_line \
     "$STARTUP_PROCESS_LOG" \
-    "$(timestamp_utc)\tevent=${event}\tname=${name}\tpid=${pid}\tstatus=${status}\tentry=${entry}"
+    "$(printf '%s\tevent=%s\tname=%s\tpid=%s\tstatus=%s\tentry=%s' \
+      "$(timestamp_utc)" \
+      "$event" \
+      "$name" \
+      "$pid" \
+      "$status" \
+      "$entry")"
 }
 
 run_entry_with_mirrored_logs() {
