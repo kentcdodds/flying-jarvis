@@ -63,21 +63,25 @@ if [ "${#daemon_pids[@]}" -eq 0 ]; then
 fi
 
 echo "[startup] waiting for ${#daemon_pids[@]} daemon(s)"
-wait_status=0
+if wait -n -p exited_pid; then
+  status=0
+else
+  status="$?"
+fi
+
+exited_name="unknown"
 for index in "${!daemon_pids[@]}"; do
   pid="${daemon_pids[$index]}"
-  name="${daemon_names[$index]}"
-
-  if wait "$pid"; then
-    echo "[startup] daemon exited cleanly ${name} (pid=${pid})"
-    continue
-  fi
-
-  status="$?"
-  echo "[startup] daemon exited non-zero ${name} (pid=${pid}, status=${status})"
-  if [ "$wait_status" -eq 0 ]; then
-    wait_status="$status"
+  if [ "$pid" -eq "$exited_pid" ]; then
+    exited_name="${daemon_names[$index]}"
+    break
   fi
 done
 
-exit "$wait_status"
+if [ "$status" -eq 0 ]; then
+  echo "[startup] daemon exited cleanly ${exited_name} (pid=${exited_pid})"
+else
+  echo "[startup] daemon exited non-zero ${exited_name} (pid=${exited_pid}, status=${status})"
+fi
+
+exit "$status"
