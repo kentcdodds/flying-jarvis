@@ -206,6 +206,7 @@ daemon_active=()
 wait_status=0
 shutdown_requested=0
 shutdown_signal=""
+shutdown_in_progress=0
 
 write_active_daemons_file() {
   local temp_file index
@@ -381,10 +382,17 @@ terminate_active_daemons() {
 handle_shutdown_signal() {
   local signal
   signal="$1"
+  if [ "$shutdown_in_progress" -eq 1 ]; then
+    return
+  fi
+  shutdown_in_progress=1
+  trap - TERM INT QUIT
   shutdown_requested=1
   shutdown_signal="$signal"
   log "received SIG${signal}; forwarding signal to active daemons"
   forward_signal_to_active_daemons "$signal"
+  terminate_active_daemons "shutdown requested via SIG${shutdown_signal}"
+  exit 0
 }
 
 write_active_daemons_file
