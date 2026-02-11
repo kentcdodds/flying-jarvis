@@ -320,10 +320,10 @@ terminate_active_daemons() {
     else
       status="$?"
     fi
-    if [ -z "$exited_pid" ]; then
+    if [ -z "${exited_pid:-}" ]; then
       continue
     fi
-    daemon_index="$(daemon_index_by_pid "$exited_pid")"
+    daemon_index="$(daemon_index_by_pid "${exited_pid:-}")"
     if [ "$daemon_index" -ge 0 ]; then
       record_daemon_exit "$daemon_index" "$status"
     fi
@@ -420,11 +420,11 @@ while [ "$(active_daemon_count)" -gt 0 ]; do
     break
   fi
 
-  if [ -z "$exited_pid" ]; then
+  if [ -z "${exited_pid:-}" ]; then
     continue
   fi
 
-  daemon_index="$(daemon_index_by_pid "$exited_pid")"
+  daemon_index="$(daemon_index_by_pid "${exited_pid:-}")"
   if [ "$daemon_index" -lt 0 ]; then
     continue
   fi
