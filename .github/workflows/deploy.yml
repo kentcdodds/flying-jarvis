@@ -170,16 +170,12 @@ jobs:
           flyctl status --app "${FLY_APP_NAME}"
           echo "::endgroup::"
 
-          echo "::group::Fly recent releases"
-          flyctl releases --app "${FLY_APP_NAME}" --limit 5
-          echo "::endgroup::"
-
           echo "::group::Fly machine list"
           flyctl machines list --app "${FLY_APP_NAME}"
           echo "::endgroup::"
 
-          echo "::group::Fly logs (last 20 minutes)"
-          flyctl logs --app "${FLY_APP_NAME}" --no-tail --since 20m
+          echo "::group::Fly logs"
+          flyctl logs --app "${FLY_APP_NAME}" --no-tail
           echo "::endgroup::"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

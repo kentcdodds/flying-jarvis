@@ -110,9 +110,8 @@ Deploy by pushing to `main`, or manually run the **Deploy to Fly.io** workflow.
 If the deploy step fails, the workflow now prints grouped Fly diagnostics directly in the job log:
 
 - app status
-- recent releases
 - machine list
-- app logs from the last 20 minutes
+- app logs (`--no-tail`)
 
 Manual workflow inputs:
 
