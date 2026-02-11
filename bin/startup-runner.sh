@@ -11,6 +11,7 @@ STARTUP_LOG_BACKUPS="${STARTUP_LOG_BACKUPS:-5}"
 STARTUP_BOOTSTRAP_EXAMPLE="${STARTUP_BOOTSTRAP_EXAMPLE:-1}"
 STARTUP_BOOTSTRAP_OPENCLAW="${STARTUP_BOOTSTRAP_OPENCLAW:-1}"
 STARTUP_TERM_GRACE_SECONDS="${STARTUP_TERM_GRACE_SECONDS:-10}"
+OPENCLAW_APP_DIR="${OPENCLAW_APP_DIR:-/app}"
 RUNNER_PID="$$"
 
 prepend_path_if_dir() {
@@ -172,10 +173,12 @@ set -euo pipefail
 # Edit this file to customize startup behavior.
 if command -v openclaw >/dev/null 2>&1; then
   OPENCLAW_BIN="$(command -v openclaw)"
-elif [ -x "/app/node_modules/.bin/openclaw" ]; then
-  OPENCLAW_BIN="/app/node_modules/.bin/openclaw"
+elif [ -x "${OPENCLAW_APP_DIR:-/app}/node_modules/.bin/openclaw" ]; then
+  OPENCLAW_BIN="${OPENCLAW_APP_DIR:-/app}/node_modules/.bin/openclaw"
+elif [ -x "${OPENCLAW_APP_DIR:-/app}/openclaw.mjs" ]; then
+  OPENCLAW_BIN="${OPENCLAW_APP_DIR:-/app}/openclaw.mjs"
 else
-  echo "openclaw binary not found on PATH or at /app/node_modules/.bin/openclaw" >&2
+  echo "openclaw binary not found on PATH or at ${OPENCLAW_APP_DIR:-/app}/node_modules/.bin/openclaw or ${OPENCLAW_APP_DIR:-/app}/openclaw.mjs" >&2
   exit 127
 fi
 
@@ -210,6 +213,26 @@ exec "$OPENCLAW_BIN" gateway run --allow-unconfigured --port 3000 --bind auto
 EOF
 }
 
+render_legacy_bootstrap_openclaw_daemon_v3() {
+  cat <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Managed by /app/bin/startup-runner.sh when STARTUP_BOOTSTRAP_OPENCLAW=1.
+# Edit this file to customize startup behavior.
+if command -v openclaw >/dev/null 2>&1; then
+  OPENCLAW_BIN="$(command -v openclaw)"
+elif [ -x "/app/node_modules/.bin/openclaw" ]; then
+  OPENCLAW_BIN="/app/node_modules/.bin/openclaw"
+else
+  echo "openclaw binary not found on PATH or at /app/node_modules/.bin/openclaw" >&2
+  exit 127
+fi
+
+exec "$OPENCLAW_BIN" gateway run --allow-unconfigured --port 3000 --bind auto
+EOF
+}
+
 sha256_of_file() {
   local file
   file="$1"
@@ -221,19 +244,20 @@ sha256_of_stdin() {
 }
 
 write_bootstrap_openclaw_daemon() {
-  local daemon_file existing_hash managed_hash legacy_hash_v1 legacy_hash_v2
+  local daemon_file existing_hash managed_hash legacy_hash_v1 legacy_hash_v2 legacy_hash_v3
   daemon_file="${STARTUP_DIR}/80-openclaw.daemon.sh"
 
   managed_hash="$(render_bootstrap_openclaw_daemon | sha256_of_stdin)"
   legacy_hash_v1="$(render_legacy_bootstrap_openclaw_daemon_v1 | sha256_of_stdin)"
   legacy_hash_v2="$(render_legacy_bootstrap_openclaw_daemon_v2 | sha256_of_stdin)"
+  legacy_hash_v3="$(render_legacy_bootstrap_openclaw_daemon_v3 | sha256_of_stdin)"
 
   if [ -f "$daemon_file" ]; then
     existing_hash="$(sha256_of_file "$daemon_file")"
     if [ "$existing_hash" = "$managed_hash" ]; then
       return
     fi
-    if [ "$existing_hash" = "$legacy_hash_v1" ] || [ "$existing_hash" = "$legacy_hash_v2" ]; then
+    if [ "$existing_hash" = "$legacy_hash_v1" ] || [ "$existing_hash" = "$legacy_hash_v2" ] || [ "$existing_hash" = "$legacy_hash_v3" ]; then
       render_bootstrap_openclaw_daemon > "$daemon_file"
       chmod +x "$daemon_file"
       log "updated legacy bootstrap daemon script: ${daemon_file}"
@@ -248,7 +272,7 @@ write_bootstrap_openclaw_daemon() {
   log "wrote bootstrap daemon script: ${daemon_file}"
 }
 
-prepend_path_if_dir "/app/node_modules/.bin"
+prepend_path_if_dir "${OPENCLAW_APP_DIR}/node_modules/.bin"
 prepend_path_if_dir "/root/.bun/bin"
 export PATH
 
