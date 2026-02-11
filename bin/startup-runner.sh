@@ -288,8 +288,35 @@ record_daemon_exit() {
   fi
 }
 
+record_non_running_active_daemons() {
+  local fallback_status index pid status progress
+  fallback_status="$1"
+  progress=0
+  for index in "${!daemon_pids[@]}"; do
+    if [ "${daemon_active[$index]}" != "1" ]; then
+      continue
+    fi
+    pid="${daemon_pids[$index]}"
+    if is_pid_running "$pid"; then
+      continue
+    fi
+
+    if wait "$pid"; then
+      status=0
+    else
+      status="$?"
+    fi
+    if [ "$status" -eq 127 ]; then
+      status="$fallback_status"
+    fi
+    record_daemon_exit "$index" "$status"
+    progress=1
+  done
+  printf '%s\n' "$progress"
+}
+
 terminate_active_daemons() {
-  local reason watchdog_pid exited_pid status daemon_index index pid
+  local reason watchdog_pid exited_pid status daemon_index index pid progress fallback_status kill_deadline
   reason="$1"
   if [ "$(active_daemon_count)" -eq 0 ]; then
     return
@@ -297,6 +324,7 @@ terminate_active_daemons() {
 
   log "${reason}; requesting daemon shutdown"
   forward_signal_to_active_daemons TERM
+  kill_deadline=$((SECONDS + STARTUP_TERM_GRACE_SECONDS))
 
   (
     sleep "$STARTUP_TERM_GRACE_SECONDS"
@@ -321,6 +349,14 @@ terminate_active_daemons() {
       status="$?"
     fi
     if [ -z "${exited_pid:-}" ]; then
+      fallback_status=0
+      if [ "$SECONDS" -ge "$kill_deadline" ]; then
+        fallback_status=137
+      fi
+      progress="$(record_non_running_active_daemons "$fallback_status")"
+      if [ "$progress" -eq 0 ]; then
+        sleep 1
+      fi
       continue
     fi
     daemon_index="$(daemon_index_by_pid "${exited_pid:-}")"
@@ -421,6 +457,10 @@ while [ "$(active_daemon_count)" -gt 0 ]; do
   fi
 
   if [ -z "${exited_pid:-}" ]; then
+    progress="$(record_non_running_active_daemons 0)"
+    if [ "$progress" -eq 0 ]; then
+      sleep 1
+    fi
     continue
   fi
 
