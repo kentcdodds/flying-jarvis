@@ -278,7 +278,7 @@ record_daemon_exit() {
 }
 
 terminate_active_daemons() {
-  local reason deadline forced index pid exited_pid status daemon_index
+  local reason deadline forced index pid status progress
   reason="$1"
   if [ "$(active_daemon_count)" -eq 0 ]; then
     return
@@ -290,6 +290,7 @@ terminate_active_daemons() {
   forced=0
 
   while [ "$(active_daemon_count)" -gt 0 ]; do
+    progress=0
     for index in "${!daemon_pids[@]}"; do
       if [ "${daemon_active[$index]}" != "1" ]; then
         continue
@@ -305,6 +306,7 @@ terminate_active_daemons() {
         status="$?"
       fi
       record_daemon_exit "$index" "$status"
+      progress=1
     done
 
     if [ "$(active_daemon_count)" -eq 0 ]; then
@@ -323,20 +325,11 @@ terminate_active_daemons() {
         fi
       done
       forced=1
-    fi
-
-    exited_pid=""
-    if wait -n -p exited_pid; then
-      status=0
-    else
-      status="$?"
-    fi
-    if [ -z "$exited_pid" ]; then
       continue
     fi
-    daemon_index="$(daemon_index_by_pid "$exited_pid")"
-    if [ "$daemon_index" -ge 0 ]; then
-      record_daemon_exit "$daemon_index" "$status"
+
+    if [ "$progress" -eq 0 ]; then
+      sleep 1
     fi
   done
 }
