@@ -165,11 +165,45 @@ If `channels list` shows no channels or no auth providers, re-check secrets and 
 flyctl logs -a <your-fly-app-name>
 ```
 
+For in-machine debugging (no `flyctl` required), use bounded reads from persistent logs:
+
+```bash
+tail -n 200 /data/logs/startup-runner.log
+tail -n 200 /data/logs/startup-processes.log
+sed -n '1,120p' /data/logs/startup-daemons.current.tsv
+```
+
 ### SSH into machine
 
 ```bash
 flyctl ssh console -a <your-fly-app-name>
 ```
+
+### Manage startup behavior on persistent volume
+
+Startup scripts are loaded from `/data/startup` at boot:
+
+- executable files without `.daemon.` are oneshot scripts
+- executable files with `.daemon.` are background daemons
+- lexical filename order controls startup order
+- first boot auto-creates `/data/startup/80-openclaw.daemon.sh` (unless `STARTUP_BOOTSTRAP_OPENCLAW=0`)
+
+Examples:
+
+```bash
+mkdir -p /data/startup
+cat >/data/startup/80-openclaw.daemon.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+exec openclaw gateway start
+EOF
+chmod +x /data/startup/80-openclaw.daemon.sh
+```
+
+The runner writes process metadata for easy management:
+
+- `/data/logs/startup-daemons.current.tsv` for active daemon PID snapshot
+- `/data/logs/startup-processes.log` for start/exit events
 
 ### Inspect config
 
@@ -252,3 +286,11 @@ flyctl ssh console -a <your-fly-app-name> -C "rm -f /data/gateway.*.lock"
 
 - Use workflow input `reset_config=true` for one deploy when needed.
 - Subsequent deploys should keep it `false`.
+
+## 9) Agent bootstrap prompts
+
+When first opening an in-machine agent session, useful prompts are:
+
+1. `Read /app/docs/agent/readme.md and /app/docs/agent/env.md, then summarize key paths and startup conventions.`
+2. `Use tail/rg only (no full log dumps) to diagnose startup failures from /data/logs/startup-runner.log and /data/logs/startup-processes.log.`
+3. `Show current daemon PIDs from /data/logs/startup-daemons.current.tsv and verify each PID with kill -0.`

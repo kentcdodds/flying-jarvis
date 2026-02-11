@@ -46,9 +46,8 @@ COPY default-config.json /app/default-config.json
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY scripts/sync-runtime-config.mjs /app/scripts/sync-runtime-config.mjs
 COPY bin/startup-runner.sh /app/bin/startup-runner.sh
-COPY startup /app/startup
-COPY email-poller /app/email-poller
-RUN chmod +x /app/docker-entrypoint.sh /app/bin/startup-runner.sh /app/startup/*.sh
+COPY docs/agent /app/docs/agent
+RUN chmod +x /app/docker-entrypoint.sh /app/bin/startup-runner.sh
 
 ENV NODE_ENV=production
 

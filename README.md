@@ -38,6 +38,30 @@ For exact commands and values, follow the runbook sections:
 - validation: [`6) Validate after deploy`](./onboarding-and-operations.md#6-validate-after-deploy)
 - operations + troubleshooting: [`7) Operations`](./onboarding-and-operations.md#7-operations) and [`8) Common troubleshooting`](./onboarding-and-operations.md#8-common-troubleshooting)
 
+## Agent-first startup model
+
+Startup behavior is volume-managed, not git-managed:
+
+- Runner: `/app/bin/startup-runner.sh`
+- Persistent startup scripts: `/data/startup`
+- Persistent startup logs: `/data/logs/startup-runner.log`
+
+This allows adding/updating startup daemons directly on the machine without changing Docker CMD or committing new startup scripts.
+On first boot, the runner initializes `/data/startup/80-openclaw.daemon.sh` so OpenClaw still starts by default.
+
+Agent docs shipped in the image:
+
+- `/app/docs/agent/readme.md`
+- `/app/docs/agent/env.md`
+
+## Recommended bootstrap prompts for Jarvis
+
+Use prompts like:
+
+1. `Read /app/docs/agent/readme.md and /app/docs/agent/env.md, then summarize the startup model and log locations.`
+2. `Diagnose startup issues using only bounded log reads (tail/rg), and show the current daemon snapshot from /data/logs/startup-daemons.current.tsv.`
+3. `Add or update a startup daemon script in /data/startup, make it executable, and verify it appears in runner logs/process state.`
+
 ## Reference docs
 
 - OpenClaw Fly deployment docs: <https://docs.openclaw.ai/install/fly>
