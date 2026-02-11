@@ -183,6 +183,31 @@ daemon_entries=()
 daemon_started_at=()
 daemon_active=()
 
+shutdown_requested=0
+shutdown_signal=""
+
+forward_signal() {
+  local signal="$1"
+
+  if [ "$shutdown_requested" -eq 1 ]; then
+    return
+  fi
+
+  shutdown_requested=1
+  shutdown_signal="$signal"
+  log "received ${signal}; forwarding to daemons"
+
+  for pid in "${daemon_pids[@]}"; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -s "$signal" "$pid" 2>/dev/null || true
+    fi
+  done
+}
+
+trap 'forward_signal TERM' TERM
+trap 'forward_signal INT' INT
+trap 'forward_signal QUIT' QUIT
+
 write_active_daemons_file() {
   local temp_file index
   temp_file="${STARTUP_ACTIVE_DAEMONS_FILE}.tmp"
@@ -261,7 +286,20 @@ for index in "${!daemon_pids[@]}"; do
   name="${daemon_names[$index]}"
   entry="${daemon_entries[$index]}"
 
-  if wait "$pid"; then
+  status=0
+  while true; do
+    if wait "$pid"; then
+      status=0
+      break
+    fi
+    status="$?"
+    if [ "$shutdown_requested" -eq 1 ] && kill -0 "$pid" 2>/dev/null; then
+      continue
+    fi
+    break
+  done
+
+  if [ "$status" -eq 0 ]; then
     daemon_active[$index]="0"
     write_active_daemons_file
     log_process_event "exit" "$name" "$pid" "0" "$entry"
@@ -269,7 +307,6 @@ for index in "${!daemon_pids[@]}"; do
     continue
   fi
 
-  status="$?"
   daemon_active[$index]="0"
   write_active_daemons_file
   log_process_event "exit" "$name" "$pid" "$status" "$entry"
