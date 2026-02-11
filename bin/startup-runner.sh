@@ -10,6 +10,7 @@ STARTUP_LOG_MAX_BYTES="${STARTUP_LOG_MAX_BYTES:-1048576}"
 STARTUP_LOG_BACKUPS="${STARTUP_LOG_BACKUPS:-5}"
 STARTUP_BOOTSTRAP_EXAMPLE="${STARTUP_BOOTSTRAP_EXAMPLE:-1}"
 STARTUP_BOOTSTRAP_OPENCLAW="${STARTUP_BOOTSTRAP_OPENCLAW:-1}"
+STARTUP_TERM_GRACE_SECONDS="${STARTUP_TERM_GRACE_SECONDS:-10}"
 
 is_positive_integer() {
   [[ "${1:-}" =~ ^[0-9]+$ ]] && [ "$1" -gt 0 ]
@@ -25,6 +26,9 @@ normalize_log_config() {
   fi
   if ! is_positive_integer "$STARTUP_LOG_BACKUPS"; then
     STARTUP_LOG_BACKUPS=5
+  fi
+  if ! is_positive_integer "$STARTUP_TERM_GRACE_SECONDS"; then
+    STARTUP_TERM_GRACE_SECONDS=10
   fi
 }
 
@@ -106,6 +110,12 @@ mirror_stream_to_runner_log() {
   done
 }
 
+is_pid_running() {
+  local pid
+  pid="$1"
+  kill -0 "$pid" >/dev/null 2>&1
+}
+
 write_bootstrap_example() {
   local example_file
   example_file="${STARTUP_DIR}/_example-openclaw.daemon.sh"
@@ -125,7 +135,7 @@ write_bootstrap_example() {
 # Files containing ".daemon." run in background.
 # Other executable files run synchronously as oneshots.
 #
-# exec openclaw gateway start
+# exec openclaw gateway run --allow-unconfigured --port 3000 --bind auto
 EOF
   chmod 0644 "$example_file"
   log "wrote bootstrap example script: ${example_file}"
@@ -142,7 +152,7 @@ write_bootstrap_openclaw_daemon() {
 #!/usr/bin/env bash
 set -euo pipefail
 
-exec openclaw gateway start
+exec openclaw gateway run --allow-unconfigured --port 3000 --bind auto
 EOF
   chmod +x "$daemon_file"
   log "wrote bootstrap daemon script: ${daemon_file}"
@@ -182,31 +192,9 @@ daemon_names=()
 daemon_entries=()
 daemon_started_at=()
 daemon_active=()
-
+wait_status=0
 shutdown_requested=0
 shutdown_signal=""
-
-forward_signal() {
-  local signal="$1"
-
-  if [ "$shutdown_requested" -eq 1 ]; then
-    return
-  fi
-
-  shutdown_requested=1
-  shutdown_signal="$signal"
-  log "received ${signal}; forwarding to daemons"
-
-  for pid in "${daemon_pids[@]}"; do
-    if kill -0 "$pid" 2>/dev/null; then
-      kill -s "$signal" "$pid" 2>/dev/null || true
-    fi
-  done
-}
-
-trap 'forward_signal TERM' TERM
-trap 'forward_signal INT' INT
-trap 'forward_signal QUIT' QUIT
 
 write_active_daemons_file() {
   local temp_file index
@@ -227,7 +215,145 @@ write_active_daemons_file() {
   mv "$temp_file" "$STARTUP_ACTIVE_DAEMONS_FILE"
 }
 
+daemon_index_by_pid() {
+  local target_pid index
+  target_pid="$1"
+  for index in "${!daemon_pids[@]}"; do
+    if [ "${daemon_pids[$index]}" = "$target_pid" ]; then
+      printf '%s\n' "$index"
+      return
+    fi
+  done
+  printf '%s\n' "-1"
+}
+
+active_daemon_count() {
+  local active index
+  active=0
+  for index in "${!daemon_active[@]}"; do
+    if [ "${daemon_active[$index]}" = "1" ]; then
+      active=$((active + 1))
+    fi
+  done
+  printf '%s\n' "$active"
+}
+
+forward_signal_to_active_daemons() {
+  local signal index pid
+  signal="$1"
+  for index in "${!daemon_pids[@]}"; do
+    if [ "${daemon_active[$index]}" != "1" ]; then
+      continue
+    fi
+    pid="${daemon_pids[$index]}"
+    if is_pid_running "$pid"; then
+      kill "-${signal}" "$pid" >/dev/null 2>&1 || true
+    fi
+  done
+}
+
+record_daemon_exit() {
+  local index status pid name entry
+  index="$1"
+  status="$2"
+
+  if [ "${daemon_active[$index]}" != "1" ]; then
+    return
+  fi
+
+  pid="${daemon_pids[$index]}"
+  name="${daemon_names[$index]}"
+  entry="${daemon_entries[$index]}"
+  daemon_active[$index]="0"
+  write_active_daemons_file
+  log_process_event "exit" "$name" "$pid" "$status" "$entry"
+  if [ "$status" -eq 0 ]; then
+    log "daemon exited cleanly ${name} (pid=${pid})"
+  else
+    log "daemon exited non-zero ${name} (pid=${pid}, status=${status})"
+  fi
+  if [ "$status" -gt "$wait_status" ]; then
+    wait_status="$status"
+  fi
+}
+
+terminate_active_daemons() {
+  local reason deadline forced index pid exited_pid status daemon_index
+  reason="$1"
+  if [ "$(active_daemon_count)" -eq 0 ]; then
+    return
+  fi
+
+  log "${reason}; requesting daemon shutdown"
+  forward_signal_to_active_daemons TERM
+  deadline=$((SECONDS + STARTUP_TERM_GRACE_SECONDS))
+  forced=0
+
+  while [ "$(active_daemon_count)" -gt 0 ]; do
+    for index in "${!daemon_pids[@]}"; do
+      if [ "${daemon_active[$index]}" != "1" ]; then
+        continue
+      fi
+      pid="${daemon_pids[$index]}"
+      if is_pid_running "$pid"; then
+        continue
+      fi
+
+      if wait "$pid"; then
+        status=0
+      else
+        status="$?"
+      fi
+      record_daemon_exit "$index" "$status"
+    done
+
+    if [ "$(active_daemon_count)" -eq 0 ]; then
+      break
+    fi
+
+    if [ "$forced" -eq 0 ] && [ "$SECONDS" -ge "$deadline" ]; then
+      log "grace period elapsed; force-killing remaining daemons"
+      for index in "${!daemon_pids[@]}"; do
+        if [ "${daemon_active[$index]}" != "1" ]; then
+          continue
+        fi
+        pid="${daemon_pids[$index]}"
+        if is_pid_running "$pid"; then
+          kill -KILL "$pid" >/dev/null 2>&1 || true
+        fi
+      done
+      forced=1
+    fi
+
+    exited_pid=""
+    if wait -n -p exited_pid; then
+      status=0
+    else
+      status="$?"
+    fi
+    if [ -z "$exited_pid" ]; then
+      continue
+    fi
+    daemon_index="$(daemon_index_by_pid "$exited_pid")"
+    if [ "$daemon_index" -ge 0 ]; then
+      record_daemon_exit "$daemon_index" "$status"
+    fi
+  done
+}
+
+handle_shutdown_signal() {
+  local signal
+  signal="$1"
+  shutdown_requested=1
+  shutdown_signal="$signal"
+  log "received SIG${signal}; forwarding signal to active daemons"
+  forward_signal_to_active_daemons "$signal"
+}
+
 write_active_daemons_file
+trap 'handle_shutdown_signal TERM' TERM
+trap 'handle_shutdown_signal INT' INT
+trap 'handle_shutdown_signal QUIT' QUIT
 
 for entry in "${sorted_entries[@]}"; do
   name="$(basename "$entry")"
@@ -268,6 +394,7 @@ for entry in "${sorted_entries[@]}"; do
   else
     status="$?"
     log "oneshot failed ${name} (status=${status})"
+    terminate_active_daemons "oneshot failure"
     exit "$status"
   fi
 done
@@ -280,40 +407,34 @@ fi
 log "daemon status file: ${STARTUP_ACTIVE_DAEMONS_FILE}"
 log "process event log: ${STARTUP_PROCESS_LOG}"
 log "waiting for ${#daemon_pids[@]} daemon(s)"
-wait_status=0
-for index in "${!daemon_pids[@]}"; do
-  pid="${daemon_pids[$index]}"
-  name="${daemon_names[$index]}"
-  entry="${daemon_entries[$index]}"
 
-  status=0
-  while true; do
-    if wait "$pid"; then
-      status=0
-      break
-    fi
-    status="$?"
-    if [ "$shutdown_requested" -eq 1 ] && kill -0 "$pid" 2>/dev/null; then
-      continue
-    fi
+while [ "$(active_daemon_count)" -gt 0 ]; do
+  if [ "$shutdown_requested" -eq 1 ]; then
+    terminate_active_daemons "shutdown requested via SIG${shutdown_signal}"
     break
-  done
+  fi
 
-  if [ "$status" -eq 0 ]; then
-    daemon_active[$index]="0"
-    write_active_daemons_file
-    log_process_event "exit" "$name" "$pid" "0" "$entry"
-    log "daemon exited cleanly ${name} (pid=${pid})"
+  exited_pid=""
+  if wait -n -p exited_pid; then
+    status=0
+  else
+    status="$?"
+  fi
+
+  if [ "$shutdown_requested" -eq 1 ]; then
+    terminate_active_daemons "shutdown requested via SIG${shutdown_signal}"
+    break
+  fi
+
+  if [ -z "$exited_pid" ]; then
     continue
   fi
 
-  daemon_active[$index]="0"
-  write_active_daemons_file
-  log_process_event "exit" "$name" "$pid" "$status" "$entry"
-  log "daemon exited non-zero ${name} (pid=${pid}, status=${status})"
-  if [ "$wait_status" -eq 0 ]; then
-    wait_status="$status"
+  daemon_index="$(daemon_index_by_pid "$exited_pid")"
+  if [ "$daemon_index" -lt 0 ]; then
+    continue
   fi
+  record_daemon_exit "$daemon_index" "$status"
 done
 
 exit "$wait_status"

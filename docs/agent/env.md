@@ -26,6 +26,7 @@
 - `STARTUP_ACTIVE_DAEMONS_FILE` (default: `${STARTUP_LOG_DIR}/startup-daemons.current.tsv`)
 - `STARTUP_LOG_MAX_BYTES` (default: `1048576`)
 - `STARTUP_LOG_BACKUPS` (default: `5`)
+- `STARTUP_TERM_GRACE_SECONDS` (default: `10`)
 - `STARTUP_BOOTSTRAP_OPENCLAW` (default: `1`)
 - `STARTUP_BOOTSTRAP_EXAMPLE` (default: `1`)
 

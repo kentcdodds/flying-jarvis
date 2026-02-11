@@ -34,7 +34,7 @@ On first boot, if `/data/startup` is missing, the runner creates it and bootstra
 #!/usr/bin/env bash
 set -euo pipefail
 
-exec openclaw gateway start
+exec openclaw gateway run --allow-unconfigured --port 3000 --bind auto
 ```
 
 Save as `/data/startup/80-openclaw.daemon.sh` and run `chmod +x /data/startup/80-openclaw.daemon.sh`.
