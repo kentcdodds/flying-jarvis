@@ -21,9 +21,11 @@ This means sidecar behavior can be changed in-place by editing files under `/dat
 - Directory: `/data/startup`
 - Order: lexical filename order
 - Only `.sh` regular files are considered
+- Files with `.ignored.` in the filename are skipped
 - Executable `.sh` files run directly
 - Non-executable `.sh` files run via `bash`
 - Scripts are launched as best-effort background sidecars
+- A starter guide file is auto-created at `/data/startup/00-startup-directory-guide.ignored.sh`
 
 ### Example sidecar script
 

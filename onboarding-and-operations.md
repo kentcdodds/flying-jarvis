@@ -190,8 +190,10 @@ Startup sidecar scripts are loaded from `/data/startup` at boot by `docker-entry
 
 - only `.sh` files are considered
 - lexical filename order controls launch order
+- files containing `.ignored.` in the filename are skipped
 - executable files run directly; non-executable `.sh` files run via `bash`
 - scripts run as best-effort background sidecars (they do not block gateway startup)
+- `/data/startup/00-startup-directory-guide.ignored.sh` is auto-created with in-place usage notes
 
 Example sidecar:
 

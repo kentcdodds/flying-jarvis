@@ -33,5 +33,7 @@
 
 - only `.sh` regular files from `/data/startup` are considered
 - lexical filename order controls launch order
+- files containing `.ignored.` in the filename are skipped
 - executable scripts run directly; non-executable scripts run via `bash`
 - scripts are launched as background sidecars and do not block gateway startup
+- `/data/startup/00-startup-directory-guide.ignored.sh` is auto-created on first boot

@@ -26,6 +26,38 @@ append_startup_log_line() {
   printf '%s\n' "$line" >> "$STARTUP_SCRIPT_LOG"
 }
 
+write_startup_directory_guide() {
+  local guide_file
+  guide_file="${STARTUP_SCRIPT_DIR}/00-startup-directory-guide.ignored.sh"
+  if [ -f "$guide_file" ]; then
+    return
+  fi
+
+  cat > "$guide_file" <<'EOF'
+#!/usr/bin/env bash
+# Startup scripts directory guide
+#
+# This file is intentionally ignored because its filename contains ".ignored.".
+# The startup loader in /app/docker-entrypoint.sh skips any file with ".ignored."
+# in the filename.
+#
+# How /data/startup works:
+# - All regular files with a ".sh" filename are launched at boot.
+# - Executable ".sh" files run directly.
+# - Non-executable ".sh" files run via "bash <file>".
+# - Scripts are launched in lexical filename order as background sidecars.
+# - Script output and lifecycle events are written to:
+#     /data/logs/startup-scripts.log
+# - Startup PID snapshot is written to:
+#     /data/logs/startup-scripts.current.tsv
+#
+# Recommended naming:
+# - 10-*.sh, 20-*.sh, 30-*.sh ... to control ordering.
+# - Include ".ignored." in filename for notes/examples you do not want to run.
+EOF
+  chmod 0644 "$guide_file"
+}
+
 launch_startup_script() {
   local entry name pid started_at
   entry="$1"
@@ -64,6 +96,7 @@ launch_startup_script() {
 start_startup_scripts() {
   local entries entry name
   mkdir -p "$STARTUP_SCRIPT_DIR" "$STARTUP_LOG_DIR"
+  write_startup_directory_guide
   : > "$STARTUP_SCRIPT_LOG"
   : > "$STARTUP_SCRIPT_PIDS_FILE"
   printf '# started_at_utc\tname\tpid\tentry\n' >> "$STARTUP_SCRIPT_PIDS_FILE"
@@ -82,6 +115,10 @@ start_startup_scripts() {
     name="$(basename "$entry")"
     if [ ! -f "$entry" ]; then
       append_startup_log_line "$(printf '%s\tevent=skip\tname=%s\treason=%s\tentry=%s' "$(timestamp_utc)" "$name" "not-a-regular-file" "$entry")"
+      continue
+    fi
+    if [[ "$name" == *".ignored."* ]]; then
+      append_startup_log_line "$(printf '%s\tevent=skip\tname=%s\treason=%s\tentry=%s' "$(timestamp_utc)" "$name" "filename-ignored" "$entry")"
       continue
     fi
     if [[ "$name" != *.sh ]]; then

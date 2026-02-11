@@ -48,6 +48,8 @@ Gateway startup is process-managed from git, while sidecars are volume-managed:
 - Startup script PID snapshot: `/data/logs/startup-scripts.current.tsv`
 
 At boot, `docker-entrypoint.sh` runs all `.sh` files in `/data/startup` as best-effort background sidecars.
+Use `.ignored.` in a startup filename to keep notes/examples in the directory without executing them.
+The image also auto-creates `/data/startup/00-startup-directory-guide.ignored.sh` with quick usage docs.
 
 Agent docs shipped in the image:
 
