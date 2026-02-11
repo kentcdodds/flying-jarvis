@@ -11,6 +11,7 @@ STARTUP_LOG_BACKUPS="${STARTUP_LOG_BACKUPS:-5}"
 STARTUP_BOOTSTRAP_EXAMPLE="${STARTUP_BOOTSTRAP_EXAMPLE:-1}"
 STARTUP_BOOTSTRAP_OPENCLAW="${STARTUP_BOOTSTRAP_OPENCLAW:-1}"
 STARTUP_TERM_GRACE_SECONDS="${STARTUP_TERM_GRACE_SECONDS:-10}"
+RUNNER_PID="$$"
 
 is_positive_integer() {
   [[ "${1:-}" =~ ^[0-9]+$ ]] && [ "$1" -gt 0 ]
@@ -114,6 +115,16 @@ is_pid_running() {
   local pid
   pid="$1"
   kill -0 "$pid" >/dev/null 2>&1
+}
+
+is_pid_child_of_runner() {
+  local pid ppid
+  pid="$1"
+  if ! command -v ps >/dev/null 2>&1; then
+    return 0
+  fi
+  ppid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d '[:space:]')"
+  [ -n "$ppid" ] && [ "$ppid" = "$RUNNER_PID" ]
 }
 
 write_bootstrap_example() {
@@ -278,7 +289,7 @@ record_daemon_exit() {
 }
 
 terminate_active_daemons() {
-  local reason deadline forced index pid status progress
+  local reason watchdog_pid exited_pid status daemon_index index pid
   reason="$1"
   if [ "$(active_daemon_count)" -eq 0 ]; then
     return
@@ -286,52 +297,42 @@ terminate_active_daemons() {
 
   log "${reason}; requesting daemon shutdown"
   forward_signal_to_active_daemons TERM
-  deadline=$((SECONDS + STARTUP_TERM_GRACE_SECONDS))
-  forced=0
 
-  while [ "$(active_daemon_count)" -gt 0 ]; do
-    progress=0
+  (
+    sleep "$STARTUP_TERM_GRACE_SECONDS"
+    log "grace period elapsed; force-killing remaining daemons"
     for index in "${!daemon_pids[@]}"; do
       if [ "${daemon_active[$index]}" != "1" ]; then
         continue
       fi
       pid="${daemon_pids[$index]}"
-      if is_pid_running "$pid"; then
-        continue
+      if is_pid_running "$pid" && is_pid_child_of_runner "$pid"; then
+        kill -KILL "$pid" >/dev/null 2>&1 || true
       fi
-
-      if wait "$pid"; then
-        status=0
-      else
-        status="$?"
-      fi
-      record_daemon_exit "$index" "$status"
-      progress=1
     done
+  ) &
+  watchdog_pid="$!"
 
-    if [ "$(active_daemon_count)" -eq 0 ]; then
-      break
+  while [ "$(active_daemon_count)" -gt 0 ]; do
+    exited_pid=""
+    if wait -n -p exited_pid; then
+      status=0
+    else
+      status="$?"
     fi
-
-    if [ "$forced" -eq 0 ] && [ "$SECONDS" -ge "$deadline" ]; then
-      log "grace period elapsed; force-killing remaining daemons"
-      for index in "${!daemon_pids[@]}"; do
-        if [ "${daemon_active[$index]}" != "1" ]; then
-          continue
-        fi
-        pid="${daemon_pids[$index]}"
-        if is_pid_running "$pid"; then
-          kill -KILL "$pid" >/dev/null 2>&1 || true
-        fi
-      done
-      forced=1
+    if [ -z "$exited_pid" ]; then
       continue
     fi
-
-    if [ "$progress" -eq 0 ]; then
-      sleep 1
+    daemon_index="$(daemon_index_by_pid "$exited_pid")"
+    if [ "$daemon_index" -ge 0 ]; then
+      record_daemon_exit "$daemon_index" "$status"
     fi
   done
+
+  if is_pid_running "$watchdog_pid"; then
+    kill "$watchdog_pid" >/dev/null 2>&1 || true
+  fi
+  wait "$watchdog_pid" >/dev/null 2>&1 || true
 }
 
 handle_shutdown_signal() {
