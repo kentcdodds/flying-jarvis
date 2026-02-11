@@ -417,7 +417,9 @@ for entry in "${sorted_entries[@]}"; do
   if [[ "$name" == *".daemon."* ]]; then
     log "daemon ${name}"
     rotate_file_if_needed "$STARTUP_RUNNER_LOG"
-    "$entry" >> "$STARTUP_RUNNER_LOG" 2>&1 &
+    "$entry" \
+      > >(mirror_stream_to_runner_log "stdout") \
+      2> >(mirror_stream_to_runner_log "stderr" >&2) &
     pid="$!"
     daemon_pids+=("$pid")
     daemon_names+=("$name")
