@@ -13,6 +13,17 @@ STARTUP_BOOTSTRAP_OPENCLAW="${STARTUP_BOOTSTRAP_OPENCLAW:-1}"
 STARTUP_TERM_GRACE_SECONDS="${STARTUP_TERM_GRACE_SECONDS:-10}"
 RUNNER_PID="$$"
 
+prepend_path_if_dir() {
+  local dir
+  dir="$1"
+  if [ -d "$dir" ]; then
+    case ":${PATH:-}:" in
+      *":${dir}:"*) ;;
+      *) PATH="${dir}:${PATH:-}" ;;
+    esac
+  fi
+}
+
 is_positive_integer() {
   [[ "${1:-}" =~ ^[0-9]+$ ]] && [ "$1" -gt 0 ]
 }
@@ -163,11 +174,24 @@ write_bootstrap_openclaw_daemon() {
 #!/usr/bin/env bash
 set -euo pipefail
 
-exec openclaw gateway run --allow-unconfigured --port 3000 --bind auto
+if command -v openclaw >/dev/null 2>&1; then
+  OPENCLAW_BIN="$(command -v openclaw)"
+elif [ -x "/app/node_modules/.bin/openclaw" ]; then
+  OPENCLAW_BIN="/app/node_modules/.bin/openclaw"
+else
+  echo "openclaw binary not found on PATH or at /app/node_modules/.bin/openclaw" >&2
+  exit 127
+fi
+
+exec "$OPENCLAW_BIN" gateway run --allow-unconfigured --port 3000 --bind auto
 EOF
   chmod +x "$daemon_file"
   log "wrote bootstrap daemon script: ${daemon_file}"
 }
+
+prepend_path_if_dir "/app/node_modules/.bin"
+prepend_path_if_dir "/root/.bun/bin"
+export PATH
 
 normalize_log_config
 mkdir -p "$STARTUP_LOG_DIR"
