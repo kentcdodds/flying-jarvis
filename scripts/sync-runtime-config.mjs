@@ -94,7 +94,7 @@ const providerDefaults = [
   },
   {
     provider: "google",
-    envVar: "GOOGLE_API_KEY",
+    envVar: "GEMINI_API_KEY",
     profileKey: "google:default",
     primaryModel: "google/gemini-3-pro-preview",
     fallbackModels: [],

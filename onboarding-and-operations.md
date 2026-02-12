@@ -63,7 +63,7 @@ Required secrets:
 - at least one provider key:
   - `ANTHROPIC_API_KEY`
   - `OPENAI_API_KEY`
-  - or `GOOGLE_API_KEY`
+  - or `GEMINI_API_KEY`
 - `CLOUDFLARE_TUNNEL_TOKEN`
 
 Optional:
@@ -78,7 +78,7 @@ Optional:
 
 Startup auto-wiring behaviors:
 
-- Provider keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`) create matching `auth.profiles.*:default` entries when missing.
+- Provider keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) create matching `auth.profiles.*:default` entries when missing.
 - Startup selects `agents.defaults.model.primary` from available providers (priority: OpenAI, then Anthropic, then Google) and keeps fallbacks aligned with available provider keys.
 - When both `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` are set, startup enables Discord plugin/binding, sets `channels.discord.groupPolicy="open"`, enables wildcard channel access, and seeds a default channel key (`DISCORD_CHANNEL_ID` or `general`).
 
@@ -95,7 +95,7 @@ Use these examples when you populate GitHub repository secrets:
 | `CLOUDFLARE_TUNNEL_TOKEN` | Yes | `eyJhIjoi...` | Cloudflare Zero Trust tunnel dashboard, or `cloudflared tunnel token <tunnel-name>` | n/a |
 | `ANTHROPIC_API_KEY` | One provider key required | `sk-ant-...` | Anthropic Console | Unset unless you add it |
 | `OPENAI_API_KEY` | One provider key required | `sk-proj-...` | OpenAI API keys page | Unset unless you add it |
-| `GOOGLE_API_KEY` | One provider key required | `AIza...` | Google AI Studio / Google Cloud credentials | Unset unless you add it |
+| `GEMINI_API_KEY` | One provider key required | `AIza...` | Google AI Studio / Google Cloud credentials | Unset unless you add it |
 | `DISCORD_BOT_TOKEN` | No | `MTA...` | Discord Developer Portal → Bot token | Unset |
 | `DISCORD_GUILD_ID` | No | `123456789012345678` | Discord Developer Mode → copy server ID | Unset |
 | `DISCORD_CHANNEL_ID` | No | `123456789012345678` | Discord Developer Mode → copy channel ID | `general` |

@@ -38,8 +38,8 @@ jobs:
           [ -n "${OPENCLAW_GATEWAY_TOKEN}" ] || { echo "Missing required secret: OPENCLAW_GATEWAY_TOKEN"; exit 1; }
           [ -n "${CLOUDFLARE_TUNNEL_TOKEN}" ] || { echo "Missing required secret: CLOUDFLARE_TUNNEL_TOKEN"; exit 1; }
 
-          if [ -z "${ANTHROPIC_API_KEY}" ] && [ -z "${OPENAI_API_KEY}" ] && [ -z "${GOOGLE_API_KEY}" ]; then
-            echo "Set at least one model provider key: ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY"
+          if [ -z "${ANTHROPIC_API_KEY}" ] && [ -z "${OPENAI_API_KEY}" ] && [ -z "${GEMINI_API_KEY}" ]; then
+            echo "Set at least one model provider key: ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY"
             exit 1
           fi
 
@@ -58,7 +58,7 @@ jobs:
           CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           FLY_VOLUME_SIZE_GB: ${{ secrets.FLY_VOLUME_SIZE_GB || '1' }}
 
       - name: Ensure Fly app and volume exist
@@ -107,14 +107,14 @@ jobs:
             echo "::notice title=Discord channel default::DISCORD_CHANNEL_ID is not set. Startup seeds 'general' while allowing all guild channels by default."
           fi
 
-          if [ -n "${GOOGLE_API_KEY}" ] && [ -z "${OPENAI_API_KEY}" ] && [ -z "${ANTHROPIC_API_KEY}" ]; then
-            echo "::notice title=Model auto-selection::Only GOOGLE_API_KEY is set. Startup will choose google/gemini-3-pro-preview as the primary model."
+          if [ -n "${GEMINI_API_KEY}" ] && [ -z "${OPENAI_API_KEY}" ] && [ -z "${ANTHROPIC_API_KEY}" ]; then
+            echo "::notice title=Model auto-selection::Only GEMINI_API_KEY is set. Startup will choose google/gemini-3-pro-preview as the primary model."
           fi
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
@@ -129,7 +129,7 @@ jobs:
           )
           [ -n "${ANTHROPIC_API_KEY}" ] && SECRETS+=("ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}")
           [ -n "${OPENAI_API_KEY}" ] && SECRETS+=("OPENAI_API_KEY=${OPENAI_API_KEY}")
-          [ -n "${GOOGLE_API_KEY}" ] && SECRETS+=("GOOGLE_API_KEY=${GOOGLE_API_KEY}")
+          [ -n "${GEMINI_API_KEY}" ] && SECRETS+=("GEMINI_API_KEY=${GEMINI_API_KEY}")
           [ -n "${DISCORD_BOT_TOKEN}" ] && SECRETS+=("DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}")
           [ -n "${DISCORD_GUILD_ID}" ] && SECRETS+=("DISCORD_GUILD_ID=${DISCORD_GUILD_ID}")
           [ -n "${DISCORD_CHANNEL_ID}" ] && SECRETS+=("DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}")
@@ -147,7 +147,7 @@ jobs:
           CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
