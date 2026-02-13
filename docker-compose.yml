@@ -27,7 +27,7 @@ services:
       - RESET_CONFIG=${RESET_CONFIG:-false}
     volumes:
       - /opt/gordon-matrix/data:/data
-    # No ports: — private-by-default architecture (same as fly.toml without [http_service])
+    # No ports: — private-by-default architecture (container is accessed only via Cloudflare Tunnel)
     deploy:
       resources:
         limits:

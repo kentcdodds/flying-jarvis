@@ -7,7 +7,7 @@ ENV PATH="/app/node_modules/.bin:/root/.bun/bin:${PATH}"
 RUN corepack enable
 
 # Install build/runtime dependencies and cloudflared for tunnel access.
-# Keep git + vim available for SSH-based diagnostics inside Fly machines.
+# Keep git + vim available for SSH-based diagnostics inside the container.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git ca-certificates curl gnupg lsof python3 python-is-python3 ripgrep vim && \
     curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null && \

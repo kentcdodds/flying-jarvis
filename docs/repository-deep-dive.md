@@ -79,7 +79,7 @@ Workspace:       /data/workspace
 - Restart policy: `unless-stopped`
 - Resource limits: 3 CPUs, 6GB RAM
 - Volume: `/opt/gordon-matrix/data` → `/data`
-- **No exposed ports** — intentionally private (same philosophy as no `[http_service]` in the old Fly.io config)
+- **No exposed ports** — intentionally private (container is accessed only via Cloudflare Tunnel)
 - All external access goes through Cloudflare Tunnel
 - Healthcheck: node fetch to `http://127.0.0.1:3000`
 - Logging: journald driver with tag `gordon-matrix`
