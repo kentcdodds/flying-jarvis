@@ -12,7 +12,7 @@ Main gateway process is started directly by the container command:
 3. Check current channel state:
    - `npx openclaw channels list`
 4. Use bounded app logs:
-   - `flyctl logs -a <your-fly-app-name> --no-tail`
+   - `docker logs gordon-matrix --tail 200`
 
 ## Keep context small while debugging
 
