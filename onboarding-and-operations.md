@@ -53,11 +53,29 @@ sudo chmod 600 /opt/gordon-matrix/.ssh/authorized_keys
 
 Install Docker CE + docker-compose-plugin from the official Docker repository for Ubuntu 24.04.
 
+### Step 3b: Harden the OS
+
+```bash
+# Disable root SSH login
+sudo sed -i 's/#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+sudo systemctl restart sshd
+
+# Install fail2ban (brute-force protection)
+sudo apt install -y fail2ban
+sudo systemctl enable fail2ban
+
+# Enable automatic security updates
+sudo apt install -y unattended-upgrades
+sudo dpkg-reconfigure -plow unattended-upgrades
+```
+
 ### Step 4: Create directory structure
 
 ```bash
 sudo mkdir -p /opt/gordon-matrix/{data,backups}
 sudo chown -R gordon:gordon /opt/gordon-matrix
+# The container runs as uid 1000 (node user); data dir must be writable by that uid.
+sudo chown -R 1000:1000 /opt/gordon-matrix/data
 sudo chmod 700 /opt/gordon-matrix/data
 ```
 
@@ -105,9 +123,25 @@ Verify only SSH (22), HTTP (80), and HTTPS (443) are open. Port 3000 must NOT be
 ### Step 8: Automated backup (cron)
 
 ```bash
+# Generate backup encryption passphrase (one-time)
+sudo -u gordon bash -c 'openssl rand -hex 32 > /opt/gordon-matrix/.backup-passphrase'
+sudo chmod 600 /opt/gordon-matrix/.backup-passphrase
+sudo chown gordon:gordon /opt/gordon-matrix/.backup-passphrase
+
+# Install gpg if not already present
+sudo apt install -y gnupg
+
 sudo crontab -u gordon -e
 # Add:
 0 3 * * * /opt/gordon-matrix/app/backup.sh >> /opt/gordon-matrix/backups/backup.log 2>&1
+```
+
+To restore an encrypted backup:
+
+```bash
+gpg --batch --passphrase-file /opt/gordon-matrix/.backup-passphrase \
+  -d /opt/gordon-matrix/backups/data-YYYYMMDD-HHMMSS.tar.gz.gpg \
+  | tar xzf - -C /opt/gordon-matrix
 ```
 
 ## 3) Configure Cloudflare Tunnel ingress
@@ -129,6 +163,7 @@ Required secrets:
 
 - `VPS_HOST` — IP or hostname of the VPS
 - `VPS_SSH_KEY` — SSH private key (ed25519) for the `gordon` user
+- `VPS_SSH_KNOWN_HOSTS` — host key fingerprint (run `ssh-keyscan -p <port> <host>` from a trusted network)
 - `OPENCLAW_GATEWAY_TOKEN`
 - at least one provider key:
   - `ANTHROPIC_API_KEY`
@@ -164,6 +199,7 @@ Use these examples when you populate GitHub repository secrets:
 | `VPS_HOST` | Yes | `203.0.113.10` | IP of your VPS | n/a |
 | `VPS_SSH_KEY` | Yes | `-----BEGIN OPENSSH...` | `ssh-keygen -t ed25519` | n/a |
 | `VPS_SSH_PORT` | No | `22` | SSH port of your VPS | `22` |
+| `VPS_SSH_KNOWN_HOSTS` | Yes | `203.0.113.10 ssh-ed25519 AAAA...` | Run `ssh-keyscan -p <port> <host>` from a trusted network | n/a |
 | `OPENCLAW_GATEWAY_TOKEN` | Yes | `f0f57a7f...` (64 hex chars) | `openssl rand -hex 32` | n/a |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Yes | `eyJhIjoi...` | Cloudflare Zero Trust tunnel dashboard, or `cloudflared tunnel token <tunnel-name>` | n/a |
 | `OPENCLAW_HOOKS_TOKEN` | No (Yes for webhooks) | `c0ffeec0...` (64 hex chars) | `openssl rand -hex 32` | Unset (webhooks disabled) |

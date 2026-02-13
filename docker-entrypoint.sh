@@ -56,6 +56,7 @@ PERSISTENT_WORKSPACE="${OPENCLAW_WORKSPACE_DIR:-$CONFIG_DIR/workspace}"
 trim_gateway_token
 start_cloudflare_tunnel
 
+# Permissions are set best-effort; the node user owns /data via Dockerfile chown.
 mkdir -p "$CONFIG_DIR" "$CREDENTIALS_DIR" "$SESSIONS_DIR"
 chmod 700 "$CONFIG_DIR" "$CREDENTIALS_DIR" || true
 

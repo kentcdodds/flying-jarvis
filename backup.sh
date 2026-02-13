@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
 BACKUP_DIR="/opt/gordon-matrix/backups"
+PASSPHRASE_FILE="/opt/gordon-matrix/.backup-passphrase"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-tar czf "${BACKUP_DIR}/data-${TIMESTAMP}.tar.gz" -C /opt/gordon-matrix data
-find "${BACKUP_DIR}" -name "data-*.tar.gz" -mtime +30 -delete
-echo "[$(date)] Backup done: data-${TIMESTAMP}.tar.gz"
+BACKUP_FILE="${BACKUP_DIR}/data-${TIMESTAMP}.tar.gz.gpg"
+
+if [ ! -f "$PASSPHRASE_FILE" ]; then
+  echo "[$(date)] ERROR: Passphrase file not found at ${PASSPHRASE_FILE}" >&2
+  echo "Create it once with: openssl rand -hex 32 > ${PASSPHRASE_FILE} && chmod 600 ${PASSPHRASE_FILE}" >&2
+  exit 1
+fi
+
+tar czf - -C /opt/gordon-matrix data \
+  | gpg --batch --yes --symmetric --cipher-algo AES256 \
+        --passphrase-file "$PASSPHRASE_FILE" \
+        -o "$BACKUP_FILE"
+
+find "${BACKUP_DIR}" -name "data-*.tar.gz.gpg" -mtime +30 -delete
+echo "[$(date)] Encrypted backup done: $(basename "$BACKUP_FILE")"

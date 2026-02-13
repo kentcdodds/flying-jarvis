@@ -31,6 +31,7 @@ jobs:
           [ -n "${CLOUDFLARE_TUNNEL_TOKEN}" ] || { echo "Missing: CLOUDFLARE_TUNNEL_TOKEN"; exit 1; }
           [ -n "${VPS_HOST}" ] || { echo "Missing: VPS_HOST"; exit 1; }
           [ -n "${VPS_SSH_KEY}" ] || { echo "Missing: VPS_SSH_KEY"; exit 1; }
+          [ -n "${VPS_SSH_KNOWN_HOSTS}" ] || { echo "Missing: VPS_SSH_KNOWN_HOSTS"; exit 1; }
           if [ -z "${ANTHROPIC_API_KEY}" ] && [ -z "${OPENAI_API_KEY}" ] && [ -z "${GEMINI_API_KEY}" ]; then
             echo "Set at least one provider key"; exit 1
           fi
@@ -39,6 +40,7 @@ jobs:
           CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -49,7 +51,9 @@ jobs:
           mkdir -p ~/.ssh
           echo "${VPS_SSH_KEY}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
+          echo "${VPS_SSH_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key \
             -p ${VPS_SSH_PORT:-22} gordon@${VPS_HOST} bash -s << EOF
           set -euo pipefail
           export OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN}"
@@ -73,11 +77,12 @@ jobs:
           docker compose up -d --build --remove-orphans
           docker ps --filter name=gordon-matrix --format "table {{.Names}}\t{{.Status}}"
           EOF
-          rm -f ~/.ssh/deploy_key
+          rm -f ~/.ssh/deploy_key ~/.ssh/known_hosts
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
           OPENCLAW_GATEWAY_TOKEN: ${{ secrets.OPENCLAW_GATEWAY_TOKEN }}
           CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

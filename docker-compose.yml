@@ -24,10 +24,13 @@ services:
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID:-}
       - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID:-}
       - OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH=${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH:-false}
+      - OPENCLAW_DISABLE_BONJOUR=1
       - RESET_CONFIG=${RESET_CONFIG:-false}
     volumes:
       - /opt/gordon-matrix/data:/data
     # No ports: — private-by-default architecture (container is accessed only via Cloudflare Tunnel)
+    security_opt:
+      - no-new-privileges:true
     deploy:
       resources:
         limits:

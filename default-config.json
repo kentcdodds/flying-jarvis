@@ -6,7 +6,12 @@
         "fallbacks": ["anthropic/claude-opus-4-5", "anthropic/claude-sonnet-4-5", "openai/gpt-4o"]
       },
       "maxConcurrent": 4,
-      "workspace": "/data/workspace"
+      "workspace": "/data/workspace",
+      "sandbox": {
+        "mode": "all",
+        "scope": "agent"
+      },
+      "workspaceAccess": "none"
     },
     "list": [
       {
@@ -26,13 +31,35 @@
   },
   "gateway": {
     "mode": "local",
-    "bind": "auto",
-    "port": 3000
+    "bind": "loopback",
+    "port": 3000,
+    "controlUi": {
+      "allowInsecureAuth": false
+    }
   },
   "hooks": {
     "enabled": false,
     "path": "/hooks",
     "allowedAgentIds": ["*"]
+  },
+  "tools": {
+    "elevated": {
+      "allowFrom": []
+    }
+  },
+  "plugins": {
+    "allow": []
+  },
+  "discovery": {
+    "mode": "off"
+  },
+  "logging": {
+    "redactSensitive": "tools",
+    "redactPatterns": [
+      "sk-ant-api03-[A-Za-z0-9_-]+",
+      "sk-[A-Za-z0-9]+",
+      "\\b[0-9]{10,}:[A-Za-z0-9_-]+\\b"
+    ]
   },
   "meta": {
     "lastTouchedVersion": "2026.1.29"
