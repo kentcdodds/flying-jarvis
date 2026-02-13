@@ -1,0 +1,105 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reset_config:
+        description: "Reset config to default"
+        required: false
+        type: boolean
+        default: false
+      openclaw_version:
+        description: "OpenClaw version (main, tag, or commit SHA)"
+        required: false
+        type: string
+        default: "main"
+
+jobs:
+  deploy:
+    name: Deploy OpenClaw to VPS
+    runs-on: ubuntu-latest
+    concurrency: deploy-group
+    permissions:
+      contents: read
+    steps:
+      - name: Validate required secrets
+        run: |
+          set -euo pipefail
+          [ -n "${OPENCLAW_GATEWAY_TOKEN}" ] || { echo "Missing: OPENCLAW_GATEWAY_TOKEN"; exit 1; }
+          [ -n "${CLOUDFLARE_TUNNEL_TOKEN}" ] || { echo "Missing: CLOUDFLARE_TUNNEL_TOKEN"; exit 1; }
+          [ -n "${VPS_HOST}" ] || { echo "Missing: VPS_HOST"; exit 1; }
+          [ -n "${VPS_SSH_KEY}" ] || { echo "Missing: VPS_SSH_KEY"; exit 1; }
+          if [ -z "${ANTHROPIC_API_KEY}" ] && [ -z "${OPENAI_API_KEY}" ] && [ -z "${GEMINI_API_KEY}" ]; then
+            echo "Set at least one provider key"; exit 1
+          fi
+        env:
+          OPENCLAW_GATEWAY_TOKEN: ${{ secrets.OPENCLAW_GATEWAY_TOKEN }}
+          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Deploy via SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "${VPS_SSH_KEY}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
+            -p ${VPS_SSH_PORT:-22} gordon@${VPS_HOST} bash -s << EOF
+          set -euo pipefail
+          export OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN}"
+          export CLOUDFLARE_TUNNEL_TOKEN="${CLOUDFLARE_TUNNEL_TOKEN}"
+          export OPENAI_API_KEY="${OPENAI_API_KEY}"
+          export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"
+          export GEMINI_API_KEY="${GEMINI_API_KEY}"
+          export OPENCLAW_HOOKS_TOKEN="${OPENCLAW_HOOKS_TOKEN}"
+          export OPENCLAW_HOOKS_PATH="${OPENCLAW_HOOKS_PATH}"
+          export OPENCLAW_HOOKS_ALLOWED_AGENT_IDS="${OPENCLAW_HOOKS_ALLOWED_AGENT_IDS}"
+          export DISCORD_BOT_TOKEN="${DISCORD_BOT_TOKEN}"
+          export DISCORD_GUILD_ID="${DISCORD_GUILD_ID}"
+          export DISCORD_CHANNEL_ID="${DISCORD_CHANNEL_ID}"
+          export OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH="${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH}"
+          export RESET_CONFIG="${RESET_CONFIG}"
+          export OPENCLAW_VERSION="${OPENCLAW_VERSION}"
+          export NODE_OPTIONS="--max-old-space-size=4096"
+
+          cd /opt/gordon-matrix/app
+          git pull origin main
+          docker compose up -d --build --remove-orphans
+          docker ps --filter name=gordon-matrix --format "table {{.Names}}\t{{.Status}}"
+          EOF
+          rm -f ~/.ssh/deploy_key
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+          OPENCLAW_GATEWAY_TOKEN: ${{ secrets.OPENCLAW_GATEWAY_TOKEN }}
+          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENCLAW_HOOKS_TOKEN: ${{ secrets.OPENCLAW_HOOKS_TOKEN }}
+          OPENCLAW_HOOKS_PATH: ${{ secrets.OPENCLAW_HOOKS_PATH }}
+          OPENCLAW_HOOKS_ALLOWED_AGENT_IDS: ${{ secrets.OPENCLAW_HOOKS_ALLOWED_AGENT_IDS }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH: ${{ secrets.OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH || 'false' }}
+          RESET_CONFIG: ${{ inputs.reset_config || 'false' }}
+          OPENCLAW_VERSION: ${{ inputs.openclaw_version || 'main' }}
+
+      - name: Log warnings
+        run: |
+          [ -n "${OPENCLAW_HOOKS_TOKEN}" ] || echo "::notice::Webhooks disabled (OPENCLAW_HOOKS_TOKEN not set)"
+          if [ -n "${DISCORD_BOT_TOKEN}" ] && [ -z "${DISCORD_GUILD_ID}" ]; then
+            echo "::warning::Discord auto-wiring skipped (DISCORD_GUILD_ID missing)"
+          fi
+        env:
+          OPENCLAW_HOOKS_TOKEN: ${{ secrets.OPENCLAW_HOOKS_TOKEN }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}

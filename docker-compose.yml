@@ -1,0 +1,45 @@
+services:
+  openclaw:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        OPENCLAW_VERSION: ${OPENCLAW_VERSION:-main}
+    container_name: gordon-matrix
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - OPENCLAW_PREFER_PNPM=1
+      - OPENCLAW_STATE_DIR=/data
+      - NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=4096}
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
+      - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENCLAW_HOOKS_TOKEN=${OPENCLAW_HOOKS_TOKEN:-}
+      - OPENCLAW_HOOKS_PATH=${OPENCLAW_HOOKS_PATH:-}
+      - OPENCLAW_HOOKS_ALLOWED_AGENT_IDS=${OPENCLAW_HOOKS_ALLOWED_AGENT_IDS:-}
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
+      - DISCORD_GUILD_ID=${DISCORD_GUILD_ID:-}
+      - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID:-}
+      - OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH=${OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH:-false}
+      - RESET_CONFIG=${RESET_CONFIG:-false}
+    volumes:
+      - /opt/gordon-matrix/data:/data
+    # No ports: — private-by-default architecture (same as fly.toml without [http_service])
+    deploy:
+      resources:
+        limits:
+          cpus: "3.0"
+          memory: 6G
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok||r.status===401?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "journald"
+      options:
+        tag: "gordon-matrix"
